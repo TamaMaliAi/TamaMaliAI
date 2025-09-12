@@ -1,0 +1,136 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  TEACHER
+  STUDENT
+}
+
+enum QuestionType {
+  IDENTIFICATION
+  MULTIPLE_CHOICE
+}
+
+enum QuizStatus {
+  ACTIVE
+  CLOSED
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      UserRole
+  deleted   Boolean  @default(false)
+
+  createdQuizzes Quiz[]        @relation("TeacherQuizzes")
+  assignedQuizzes QuizAssignment[]
+  attempts       QuizAttempt[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Quiz {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  subject     String?
+  timeLimit   Int?        // minutes
+  totalPoints Int
+  deadline    DateTime?
+  deleted     Boolean     @default(false)
+
+  status      QuizStatus  @default(ACTIVE)
+
+  teacher     User        @relation("TeacherQuizzes", fields: [teacherId], references: [id])
+  teacherId   String
+  questions   Question[]
+  assignments QuizAssignment[]
+  attempts    QuizAttempt[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model QuizAssignment {
+  id        String @id @default(uuid())
+  quiz      Quiz   @relation(fields: [quizId], references: [id])
+  quizId    String
+  student   User   @relation(fields: [studentId], references: [id])
+  studentId String
+  deleted   Boolean @default(false)
+
+  assignedAt DateTime @default(now())
+}
+
+model Question {
+  id        String       @id @default(uuid())
+  text      String
+  type      QuestionType
+  order     Int
+  points    Int
+  deleted   Boolean      @default(false)
+
+  options   QuestionOption[]
+  quiz      Quiz         @relation(fields: [quizId], references: [id])
+  quizId    String
+  answers   StudentAnswer[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model QuestionOption {
+  id          String   @id @default(uuid())
+  text        String
+  isCorrect   Boolean  @default(false)
+  deleted     Boolean  @default(false)
+
+  question    Question @relation(fields: [questionId], references: [id])
+  questionId  String
+
+  studentAnswers StudentAnswer[]
+
+}
+
+model QuizAttempt {
+  id          String   @id @default(uuid())
+  student     User     @relation(fields: [studentId], references: [id])
+  studentId   String
+  quiz        Quiz     @relation(fields: [quizId], references: [id])
+  quizId      String
+  score       Int
+  submittedAt DateTime @default(now())
+  attemptNo   Int
+  deleted     Boolean  @default(false)
+
+  answers     StudentAnswer[]
+}
+
+model StudentAnswer {
+  id          String       @id @default(uuid())
+  question    Question     @relation(fields: [questionId], references: [id])
+  questionId  String
+  attempt     QuizAttempt  @relation(fields: [attemptId], references: [id])
+  attemptId   String
+
+  // Identification
+  
+  textAnswer  String?
+
+  // Multiple Choice
+
+  selectedOptionId String?
+  selectedOption   QuestionOption? @relation(fields: [selectedOptionId], references: [id])
+
+  isCorrect   Boolean?
+  deleted     Boolean  @default(false)
+}
