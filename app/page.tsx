@@ -1,141 +1,137 @@
 // pages/AuthPage.tsx (Main component using all the smaller components)
-"use client";
-import { SetStateAction, useState } from "react";
-import { GraduationCap, BookOpen } from "lucide-react";
-import Message from "./components/Message";
-import AuthForm from "./components/AuthForm";
-import InfoPanel from "./components/InfoPanel";
-import BackgroundCircle from "./components/BackgroundCircle";
-import axios from 'axios';
+'use client'
+import { SetStateAction, useState } from 'react'
+import { GraduationCap, BookOpen } from 'lucide-react'
+import Message from './components/Message'
+import AuthForm from './components/AuthForm'
+import InfoPanel from './components/InfoPanel'
+import BackgroundCircle from './components/BackgroundCircle'
+import axios from 'axios'
 
 export default function AuthPage() {
-  const [isTeacherMode, setIsTeacherMode] = useState(false);
-  const [isSignUpMode, setIsSignUpMode] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isTeacherMode, setIsTeacherMode] = useState(false)
+  const [isSignUpMode, setIsSignUpMode] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
-    username: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-    firstName: "",
-    lastName: "",
-  });
-  const [message, setMessage] = useState("");
+    username: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    firstName: '',
+    lastName: ''
+  })
+  const [message, setMessage] = useState('')
 
-  const handleInputChange = (e: { target: { name: any; value: any; }; }) => {
-    const { name, value } = e.target;
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
-    }));
-  };
+      [name]: value
+    }))
+  }
 
-  const showMessage = (msg: SetStateAction<string>, isError = false) => {
-    setMessage(msg);
-    setTimeout(() => setMessage(""), 3000);
-  };
+  const showMessage = (msg: SetStateAction<string>) => {
+    setMessage(msg)
+    setTimeout(() => setMessage(''), 3000)
+  }
 
   const handleSubmit = async () => {
-    setIsLoading(true);
-    const userType = isTeacherMode ? "TEACHER" : "STUDENT";
+    setIsLoading(true)
+    const userType = isTeacherMode ? 'TEACHER' : 'STUDENT'
 
     try {
       if (isSignUpMode) {
+        if(formData.password !== formData.confirmPassword){
+          showMessage('Password does not match')
+          return
+        }
         const response = await axios.post('/api/register', {
           firstName: formData.firstName,
           lastName: formData.lastName,
           email: formData.email,
           password: formData.password,
-          role: userType,
-        });
+          role: userType
+        })
 
-        const data = response.data;
+        const data = response.data
 
         if (data.success) {
-          showMessage("Account created! Please login.");
-          setIsSignUpMode(false);
+          showMessage('Account created! Please login.')
+          setIsSignUpMode(false)
           setFormData({
-            username: "",
-            email: "",
-            password: "",
-            confirmPassword: "",
-            firstName: "",
-            lastName: "",
-          });
+            username: '',
+            email: '',
+            password: '',
+            confirmPassword: '',
+            firstName: '',
+            lastName: ''
+          })
         } else {
-          showMessage(data.message, true);
+          showMessage(data.message)
         }
       } else {
         const response = await axios.post('/api/login', {
           username: formData.username,
           password: formData.password,
-          role: userType,
-        });
+          role: userType
+        })
 
-        const data = response.data;
+        const data = response.data
 
         if (data.success) {
           // Store user role in localStorage
-          localStorage.setItem('userRole', userType);
-          
+          localStorage.setItem('userRole', userType)
+
           // Redirect based on role
-          if (userType === "TEACHER") {
-            window.location.href = "/teacher-dashboard";
+          if (userType === 'TEACHER') {
+            window.location.href = '/teacher-dashboard'
           } else {
-            window.location.href = "/student-dashboard";
+            window.location.href = '/student-dashboard'
           }
         } else {
-          showMessage(data.message, true);
+          showMessage(data.message)
         }
       }
-    } catch (error: any) {
-      // Handle axios errors
-      if (error.response) {
-        // Server responded with error status
-        showMessage(error.response.data?.message || "Server error occurred.", true);
-      } else if (error.request) {
-        // Request was made but no response received
-        showMessage("Network error. Please check your connection.", true);
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        showMessage(error.response?.data?.message || 'Server error occurred.')
       } else {
-        // Something else happened
-        showMessage("Something went wrong. Please try again.", true);
+        showMessage('Something went wrong. Please try again.')
       }
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   const toggleSignUpMode = () => {
-    setIsSignUpMode(!isSignUpMode);
+    setIsSignUpMode(!isSignUpMode)
     setFormData({
-      username: "",
-      email: "",
-      password: "",
-      confirmPassword: "",
-      firstName: "",
-      lastName: "",
-    });
-    setMessage("");
-  };
+      username: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+      firstName: '',
+      lastName: ''
+    })
+    setMessage('')
+  }
 
   return (
-    <div className="relative w-full min-h-screen bg-white overflow-hidden">
+    <div className='relative w-full min-h-screen bg-white overflow-hidden'>
       <Message message={message} isVisible={!!message} />
-      
+
       <BackgroundCircle isTeacherMode={isTeacherMode} />
 
       {/* Forms container */}
-      <div className="absolute w-full h-full top-0 left-0">
+      <div className='absolute w-full h-full top-0 left-0'>
         <div
           className={
-            "absolute top-1/2 -translate-y-1/2 w-1/2 transition-all duration-1000 ease-in-out delay-700 grid grid-cols-1 z-[50] " +
-            (isTeacherMode
-              ? "left-[25%] -translate-x-1/2"
-              : "left-[75%] -translate-x-1/2")
+            'absolute top-1/2 -translate-y-1/2 w-1/2 transition-all duration-1000 ease-in-out delay-700 grid grid-cols-1 z-[50] ' +
+            (isTeacherMode ? 'left-[25%] -translate-x-1/2' : 'left-[75%] -translate-x-1/2')
           }
         >
           <AuthForm
-            title="Student"
+            title='Student'
             icon={GraduationCap}
             isSignUpMode={isSignUpMode}
             isLoading={isLoading}
@@ -147,7 +143,7 @@ export default function AuthPage() {
           />
 
           <AuthForm
-            title="Teacher"
+            title='Teacher'
             icon={BookOpen}
             isSignUpMode={isSignUpMode}
             isLoading={isLoading}
@@ -161,14 +157,14 @@ export default function AuthPage() {
       </div>
 
       {/* Panels */}
-      <div className="absolute h-full w-full top-0 left-0 grid grid-cols-2 z-[7]">
+      <div className='absolute h-full w-full top-0 left-0 grid grid-cols-2 z-[7]'>
         <InfoPanel
           icon={GraduationCap}
-          title="Student Portal"
-          description="Access your courses, assignments, and track your academic progress."
-          buttonText="Teacher Login"
-          imageUrl="https://i.ibb.co/6HXL6q1/Privacy-policy-rafiki.png"
-          imageAlt="Student illustration"
+          title='Student Portal'
+          description='Access your courses, assignments, and track your academic progress.'
+          buttonText='Teacher Login'
+          imageUrl='https://i.ibb.co/6HXL6q1/Privacy-policy-rafiki.png'
+          imageAlt='Student illustration'
           isLeft={true}
           isActive={isTeacherMode}
           onButtonClick={() => setIsTeacherMode(true)}
@@ -176,16 +172,16 @@ export default function AuthPage() {
 
         <InfoPanel
           icon={BookOpen}
-          title="Teacher Portal"
-          description="Manage your classes, create assignments, and monitor student performance."
-          buttonText="Student Login"
-          imageUrl="https://i.ibb.co/nP8H853/Mobile-login-rafiki.png"
-          imageAlt="Teacher illustration"
+          title='Teacher Portal'
+          description='Manage your classes, create assignments, and monitor student performance.'
+          buttonText='Student Login'
+          imageUrl='https://i.ibb.co/nP8H853/Mobile-login-rafiki.png'
+          imageAlt='Teacher illustration'
           isLeft={false}
           isActive={isTeacherMode}
           onButtonClick={() => setIsTeacherMode(false)}
         />
       </div>
     </div>
-  );
+  )
 }
