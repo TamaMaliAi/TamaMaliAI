@@ -12,9 +12,16 @@ enum UserRole {
   STUDENT
 }
 
-enum QuestionType {
-  IDENTIFICATION
+enum QuizType {
   MULTIPLE_CHOICE
+  IDENTIFICATION
+  ENUMERATION
+}
+
+enum QuestionType {
+  MULTIPLE_CHOICE
+  IDENTIFICATION
+  ENUMERATION
 }
 
 enum QuizStatus {
@@ -23,14 +30,16 @@ enum QuizStatus {
 }
 
 model User {
-  id        String   @id @default(uuid())
+  id        Int      @id @default(autoincrement())
   email     String   @unique
   password  String
   name      String
   role      UserRole
   deleted   Boolean  @default(false)
 
-  createdQuizzes Quiz[]        @relation("TeacherQuizzes")
+  createdQuizzes Quiz[]           @relation("TeacherQuizzes")
+  groups        Group[]           @relation("TeacherGroups")
+  studentGroups StudentGroup[]
   assignedQuizzes QuizAssignment[]
   attempts       QuizAttempt[]
 
@@ -38,11 +47,35 @@ model User {
   updatedAt DateTime @updatedAt
 }
 
+model Group {
+  id        Int     @id @default(autoincrement())
+  name      String
+  deleted   Boolean @default(false)
+
+  teacher   User    @relation("TeacherGroups", fields: [teacherId], references: [id])
+  teacherId Int
+
+  students  StudentGroup[]
+  assignments QuizAssignment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model StudentGroup {
+  id        Int  @id @default(autoincrement())
+  student   User @relation(fields: [studentId], references: [id])
+  studentId Int
+  group     Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  groupId   Int
+}
+
 model Quiz {
-  id          String   @id @default(uuid())
+  id          Int        @id @default(autoincrement())
   title       String
   description String?
   subject     String?
+  type        QuizType
   timeLimit   Int?        // minutes
   totalPoints Int
   deadline    DateTime?
@@ -51,7 +84,7 @@ model Quiz {
   status      QuizStatus  @default(ACTIVE)
 
   teacher     User        @relation("TeacherQuizzes", fields: [teacherId], references: [id])
-  teacherId   String
+  teacherId   Int
   questions   Question[]
   assignments QuizAssignment[]
   attempts    QuizAttempt[]
@@ -61,18 +94,23 @@ model Quiz {
 }
 
 model QuizAssignment {
-  id        String @id @default(uuid())
-  quiz      Quiz   @relation(fields: [quizId], references: [id])
-  quizId    String
-  student   User   @relation(fields: [studentId], references: [id])
-  studentId String
-  deleted   Boolean @default(false)
+  id        Int @id @default(autoincrement())
 
+  quiz      Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  quizId    Int
+
+  // Assignment can be for a student OR a group
+  student   User?  @relation(fields: [studentId], references: [id])
+  studentId Int?
+  group     Group? @relation(fields: [groupId], references: [id])
+  groupId   Int?
+
+  deleted   Boolean @default(false)
   assignedAt DateTime @default(now())
 }
 
 model Question {
-  id        String       @id @default(uuid())
+  id        Int          @id @default(autoincrement())
   text      String
   type      QuestionType
   order     Int
@@ -80,8 +118,8 @@ model Question {
   deleted   Boolean      @default(false)
 
   options   QuestionOption[]
-  quiz      Quiz         @relation(fields: [quizId], references: [id])
-  quizId    String
+  quiz      Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  quizId    Int
   answers   StudentAnswer[]
 
   createdAt DateTime @default(now())
@@ -89,24 +127,23 @@ model Question {
 }
 
 model QuestionOption {
-  id          String   @id @default(uuid())
+  id          Int      @id @default(autoincrement())
   text        String
   isCorrect   Boolean  @default(false)
   deleted     Boolean  @default(false)
 
-  question    Question @relation(fields: [questionId], references: [id])
-  questionId  String
+  question    Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  questionId  Int
 
   studentAnswers StudentAnswer[]
-
 }
 
 model QuizAttempt {
-  id          String   @id @default(uuid())
+  id          Int      @id @default(autoincrement())
   student     User     @relation(fields: [studentId], references: [id])
-  studentId   String
-  quiz        Quiz     @relation(fields: [quizId], references: [id])
-  quizId      String
+  studentId   Int
+  quiz        Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  quizId      Int
   score       Int
   submittedAt DateTime @default(now())
   attemptNo   Int
@@ -116,19 +153,18 @@ model QuizAttempt {
 }
 
 model StudentAnswer {
-  id          String       @id @default(uuid())
-  question    Question     @relation(fields: [questionId], references: [id])
-  questionId  String
-  attempt     QuizAttempt  @relation(fields: [attemptId], references: [id])
-  attemptId   String
+  id          Int          @id @default(autoincrement())
+  question    Question     @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  questionId  Int
+  attempt     QuizAttempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  attemptId   Int
 
-  // Identification
-  
+  // Identification & Enumeration
   textAnswer  String?
+  listAnswer  Json? // For ENUMERATION (list of items)
 
   // Multiple Choice
-
-  selectedOptionId String?
+  selectedOptionId Int?
   selectedOption   QuestionOption? @relation(fields: [selectedOptionId], references: [id])
 
   isCorrect   Boolean?
