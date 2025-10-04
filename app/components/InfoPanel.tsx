@@ -1,5 +1,6 @@
 import React from 'react';
 import { LucideIcon } from 'lucide-react';
+import Image from "next/image";
 
 interface InfoPanelProps {
   icon: LucideIcon;
@@ -58,14 +59,23 @@ export default function InfoPanel({
           {buttonText}
         </button>
       </div>
-      <img
-        src={imageUrl}
-        alt={imageAlt}
+
+      {/* ✅ Optimized Image */}
+      <div
         className={
           "w-full transition-transform duration-1100 ease-in-out delay-400 " +
           imageTransform
         }
-      />
+      >
+        <Image
+          src={imageUrl}
+          alt={imageAlt}
+          width={500}   // pick a reasonable width
+          height={500}  // pick a reasonable height
+          className="w-full h-auto object-contain"
+          priority
+        />
+      </div>
     </div>
   );
 }

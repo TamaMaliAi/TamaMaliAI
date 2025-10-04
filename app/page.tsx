@@ -6,7 +6,9 @@ import Message from './components/Message'
 import AuthForm from './components/AuthForm'
 import InfoPanel from './components/InfoPanel'
 import BackgroundCircle from './components/BackgroundCircle'
+import Logo from "./components/Logo";
 import axios from 'axios'
+
 
 export default function AuthPage() {
   const [isTeacherMode, setIsTeacherMode] = useState(false)
@@ -122,6 +124,10 @@ export default function AuthPage() {
 
       <BackgroundCircle isTeacherMode={isTeacherMode} />
 
+      <Logo isTeacherMode={isTeacherMode} />
+
+      
+
       {/* Forms container */}
       <div className='absolute w-full h-full top-0 left-0'>
         <div
@@ -163,7 +169,7 @@ export default function AuthPage() {
           title='Student Portal'
           description='Access your courses, assignments, and track your academic progress.'
           buttonText='Teacher Login'
-          imageUrl='https://i.ibb.co/6HXL6q1/Privacy-policy-rafiki.png'
+          imageUrl='/student-o.png'
           imageAlt='Student illustration'
           isLeft={true}
           isActive={isTeacherMode}
@@ -175,7 +181,7 @@ export default function AuthPage() {
           title='Teacher Portal'
           description='Manage your classes, create assignments, and monitor student performance.'
           buttonText='Student Login'
-          imageUrl='https://i.ibb.co/nP8H853/Mobile-login-rafiki.png'
+          imageUrl='/teacher-o.png'
           imageAlt='Teacher illustration'
           isLeft={false}
           isActive={isTeacherMode}
