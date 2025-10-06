@@ -60,7 +60,6 @@ export default function InfoPanel({
         </button>
       </div>
 
-      {/* ✅ Optimized Image */}
       <div
         className={
           "w-full transition-transform duration-1100 ease-in-out delay-400 " +
