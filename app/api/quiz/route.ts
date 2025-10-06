@@ -95,3 +95,141 @@ export async function POST(req: Request) {
     return NextResponse.json({ message: 'Failed to create quiz', success: false }, { status: 500 })
   }
 }
+
+export async function GET(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url)
+    const id = searchParams.get('id')
+
+    if (id) {
+      // Fetch single quiz by ID
+      const quiz = await prisma.quiz.findUnique({
+        where: { id: Number(id) },
+        include: {
+          questions: {
+            include: { options: true }
+          },
+          teacher: true
+        }
+      })
+
+      if (!quiz) {
+        return NextResponse.json({ message: 'Quiz not found', success: false }, { status: 404 })
+      }
+
+      return NextResponse.json({ success: true, quiz })
+    }
+
+    // Fetch all quizzes
+    const quizzes = await prisma.quiz.findMany({
+      include: {
+        questions: {
+          include: { options: true }
+        },
+        teacher: true
+      },
+      orderBy: { createdAt: 'desc' }
+    })
+
+    return NextResponse.json({ success: true, quizzes })
+  } catch (error) {
+    console.error('Get quiz error:', error)
+    return NextResponse.json({ message: 'Failed to fetch quiz(es)', success: false }, { status: 500 })
+  }
+}
+
+// PUT /api/quiz?id=123
+export async function PUT(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url)
+    const id = searchParams.get('id')
+
+    if (!id) {
+      return NextResponse.json({ message: 'Quiz ID is required', success: false }, { status: 400 })
+    }
+
+    const {
+      title,
+      description,
+      subject,
+      type,
+      timeLimit,
+      totalPoints,
+      deadline,
+      teacherId,
+      questions
+    }: {
+      title?: string
+      description?: string
+      subject?: string
+      type?: QuizType
+      timeLimit?: number
+      totalPoints?: number
+      deadline?: string
+      teacherId?: number
+      questions?: {
+        text: string
+        type: string
+        order: number
+        points: number
+        options?: { text: string; isCorrect: boolean }[]
+      }[]
+    } = await req.json()
+
+    // Check if quiz exists
+    const existingQuiz = await prisma.quiz.findUnique({ where: { id: Number(id) } })
+    if (!existingQuiz) {
+      return NextResponse.json({ message: 'Quiz not found', success: false }, { status: 404 })
+    }
+
+    // Update quiz
+    const updatedQuiz = await prisma.quiz.update({
+      where: { id: Number(id) },
+      data: {
+        title,
+        description,
+        subject,
+        type,
+        timeLimit,
+        totalPoints,
+        deadline: deadline ? new Date(deadline) : undefined,
+        teacherId,
+        // If questions are provided, delete old ones and recreate
+        ...(questions
+          ? {
+              questions: {
+                deleteMany: {}, // remove all old questions
+                create: questions.map((q) => ({
+                  text: q.text,
+                  type: q.type as QuizType,
+                  order: q.order,
+                  points: q.points,
+                  options:
+                    q.options && q.options.length > 0
+                      ? {
+                          create: q.options.map((o) => ({
+                            text: o.text,
+                            isCorrect: o.isCorrect
+                          }))
+                        }
+                      : undefined
+                }))
+              }
+            }
+          : {})
+      },
+      include: {
+        questions: { include: { options: true } }
+      }
+    })
+
+    return NextResponse.json({
+      message: 'Quiz updated successfully',
+      success: true,
+      quiz: updatedQuiz
+    })
+  } catch (error) {
+    console.error('Update quiz error:', error)
+    return NextResponse.json({ message: 'Failed to update quiz', success: false }, { status: 500 })
+  }
+}
