@@ -81,10 +81,10 @@ export default function AuthPage() {
         const data = response.data
 
         if (data.success) {
-          // Store user role in localStorage
+          //Store user role in localStorage
           localStorage.setItem('userRole', userType)
 
-          // Redirect based on role
+          //Redirect based on role
           if (userType === 'TEACHER') {
             window.location.href = '/teacher-dashboard'
           } else {
@@ -128,7 +128,7 @@ export default function AuthPage() {
 
       
 
-      {/* Forms container */}
+      {/*Forms container*/}
       <div className='absolute w-full h-full top-0 left-0'>
         <div
           className={
@@ -162,7 +162,7 @@ export default function AuthPage() {
         </div>
       </div>
 
-      {/* Panels */}
+      {/*Panels*/}
       <div className='absolute h-full w-full top-0 left-0 grid grid-cols-2 z-[7]'>
         <InfoPanel
           icon={GraduationCap}
