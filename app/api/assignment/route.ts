@@ -67,3 +67,51 @@ export async function POST(req: Request) {
     return NextResponse.json({ message: 'Failed to assign quiz', success: false }, { status: 500 })
   }
 }
+
+export async function GET(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url)
+    const assignmentId = searchParams.get('assignmentId')
+    const quizId = searchParams.get('quizId')
+    const studentId = searchParams.get('studentId')
+    const groupId = searchParams.get('groupId')
+
+    // If querying a specific assignment
+    if (assignmentId) {
+      const assignment = await prisma.quizAssignment.findUnique({
+        where: { id: Number(assignmentId) },
+        include: {
+          quiz: true,
+          student: true,
+          group: true
+        }
+      })
+
+      if (!assignment) {
+        return NextResponse.json({ message: 'Assignment not found', success: false }, { status: 404 })
+      }
+
+      return NextResponse.json({ success: true, assignment })
+    }
+
+    // Otherwise, query all assignments (with optional filters)
+    const assignments = await prisma.quizAssignment.findMany({
+      where: {
+        ...(quizId ? { quizId: Number(quizId) } : {}),
+        ...(studentId ? { studentId: Number(studentId) } : {}),
+        ...(groupId ? { groupId: Number(groupId) } : {})
+      },
+      include: {
+        quiz: true,
+        student: true,
+        group: true
+      },
+      orderBy: { assignedAt: 'desc' }
+    })
+
+    return NextResponse.json({ success: true, assignments })
+  } catch (error) {
+    console.error('Fetch assignments error:', error)
+    return NextResponse.json({ message: 'Failed to fetch assignments', success: false }, { status: 500 })
+  }
+}

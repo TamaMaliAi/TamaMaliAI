@@ -4,16 +4,16 @@ import * as React from 'react'
 import { useForm, useFieldArray, Control } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { PlusCircle, Trash2 } from 'lucide-react'
+import { useTeacherRouteParams } from '@/app/teacher-dashboard/[teacherId]/hooks/useTeacherRouteParams'
 
 const optionSchema = z.object({
   text: z.string().min(1, 'Option text is required'),
@@ -50,7 +50,7 @@ const DEFAULT_QUESTION: QuestionFormValues = {
 
 export default function UpdateMultipleChoiceQuizForm() {
   const router = useRouter()
-  const { quizId } = useParams() as { quizId: string }
+  const { teacherId, quizId } = useTeacherRouteParams()
 
   const form = useForm<QuizFormValues>({
     resolver: zodResolver(quizSchema),
@@ -76,7 +76,7 @@ export default function UpdateMultipleChoiceQuizForm() {
 
     const fetchQuiz = async () => {
       try {
-        const res = await fetch(`/api/quiz?id=${quizId}`)
+        const res = await fetch(`/api/quiz?teacherId=${teacherId}&quizId=${quizId}`)
         if (!res.ok) throw new Error('Failed to fetch quiz')
         const { quiz }: { quiz: QuizFormValues } = await res.json()
 
@@ -102,7 +102,7 @@ export default function UpdateMultipleChoiceQuizForm() {
     }
 
     fetchQuiz()
-  }, [quizId, form])
+  }, [quizId, form, teacherId])
 
   const onSubmit = async (data: QuizFormValues) => {
     try {
@@ -113,7 +113,7 @@ export default function UpdateMultipleChoiceQuizForm() {
           ...data,
           type: 'MULTIPLE_CHOICE',
           totalPoints: data.questions.reduce((acc, q) => acc + q.points, 0),
-          teacherId: 1, // TODO: replace with real teacherId
+          teacherId: teacherId,
           questions: data.questions.map((q, index) => ({
             text: q.text,
             type: 'MULTIPLE_CHOICE',
@@ -130,7 +130,7 @@ export default function UpdateMultipleChoiceQuizForm() {
         return
       }
 
-      router.push('/teacher-dashboard/quizzes')
+      router.push(`/teacher-dashboard/${teacherId}/quizzes`)
     } catch (err) {
       console.error('Unexpected error:', err)
     }
@@ -147,6 +147,7 @@ export default function UpdateMultipleChoiceQuizForm() {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-6'>
+              {/* Title */}
               <FormField
                 control={form.control}
                 name='title'
@@ -161,6 +162,7 @@ export default function UpdateMultipleChoiceQuizForm() {
                 )}
               />
 
+              {/* Description */}
               <FormField
                 control={form.control}
                 name='description'
@@ -175,17 +177,20 @@ export default function UpdateMultipleChoiceQuizForm() {
                 )}
               />
 
-              <Accordion type='single' collapsible className='space-y-4'>
+              {/* Questions */}
+              <div className='space-y-6'>
                 {questionFields.map((q, qIndex) => (
                   <QuestionItem key={q.id} qIndex={qIndex} control={form.control} removeQuestion={removeQuestion} />
                 ))}
-              </Accordion>
+              </div>
 
+              {/* Add Question */}
               <Button type='button' variant='outline' className='w-full' onClick={() => addQuestion(DEFAULT_QUESTION)}>
                 <PlusCircle className='h-4 w-4 mr-1' />
                 Add Question
               </Button>
 
+              {/* Footer */}
               <div className='sticky bottom-0 bg-white border-t pt-4 mt-6 flex justify-between items-center'>
                 <span className='text-sm text-muted-foreground'>
                   {questionFields.length} questions · {totalPoints} points
@@ -219,14 +224,13 @@ function QuestionItem({
   })
 
   return (
-    <AccordionItem value={`q-${qIndex}`} className='border rounded-lg shadow-sm'>
-      <AccordionTrigger>
-        <div className='flex justify-between items-center w-full'>
-          <span className='font-semibold'>Question {qIndex + 1}</span>
-          <Badge variant='secondary'>{optionFields.length} options</Badge>
-        </div>
-      </AccordionTrigger>
-      <AccordionContent className='space-y-4 p-4'>
+    <Card className='border rounded-lg shadow-sm'>
+      <CardHeader className='flex flex-row justify-between items-center'>
+        <CardTitle className='text-base'>Question {qIndex + 1}</CardTitle>
+        <Badge variant='secondary'>{optionFields.length} options</Badge>
+      </CardHeader>
+      <CardContent className='space-y-4'>
+        {/* Question Text */}
         <FormField
           control={control}
           name={`questions.${qIndex}.text`}
@@ -241,6 +245,7 @@ function QuestionItem({
           )}
         />
 
+        {/* Points */}
         <FormField
           control={control}
           name={`questions.${qIndex}.points`}
@@ -255,6 +260,7 @@ function QuestionItem({
           )}
         />
 
+        {/* Options */}
         <div className='space-y-3'>
           {optionFields.map((o, oIndex) => (
             <div key={o.id} className='flex items-center gap-3 border rounded-md p-3'>
@@ -294,11 +300,12 @@ function QuestionItem({
           </Button>
         </div>
 
+        {/* Remove Question */}
         <Button type='button' variant='destructive' size='sm' onClick={() => removeQuestion(qIndex)}>
           <Trash2 className='h-4 w-4 mr-1' />
           Remove Question
         </Button>
-      </AccordionContent>
-    </AccordionItem>
+      </CardContent>
+    </Card>
   )
 }

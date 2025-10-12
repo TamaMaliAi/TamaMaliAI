@@ -4,15 +4,15 @@ import * as React from 'react'
 import { useForm, useFieldArray, Control } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion'
 import { Badge } from '@/components/ui/badge'
 import { Trash2, PlusCircle } from 'lucide-react'
+import { useTeacherRouteParams } from '@/app/teacher-dashboard/[teacherId]/hooks/useTeacherRouteParams'
 
 const questionSchema = z.object({
   text: z.string().min(1, 'Question text is required'),
@@ -29,15 +29,23 @@ const quizSchema = z.object({
 type QuizFormValues = z.infer<typeof quizSchema>
 type QuestionFormValues = QuizFormValues['questions'][number]
 
-const quizApiResponseSchema = z.object({
-  quiz: quizSchema
-})
-
 const DEFAULT_QUESTION: QuestionFormValues = { text: '', answer: '', points: 1 }
+
+interface ApiQuestion {
+  text: string
+  points: number
+  options: { text: string; isCorrect: boolean }[]
+}
+
+interface ApiQuiz {
+  title: string
+  description?: string
+  questions: ApiQuestion[]
+}
 
 export default function UpdateIdentificationQuizForm() {
   const router = useRouter()
-  const { quizId } = useParams() as { quizId: string }
+  const { teacherId, quizId } = useTeacherRouteParams()
 
   const form = useForm<QuizFormValues>({
     resolver: zodResolver(quizSchema),
@@ -63,25 +71,20 @@ export default function UpdateIdentificationQuizForm() {
 
     const fetchQuiz = async () => {
       try {
-        const res = await fetch(`/api/quiz?id=${quizId}`)
+        const res = await fetch(`/api/quiz?teacherId=${teacherId}&quizId=${quizId}`)
         if (!res.ok) throw new Error('Failed to fetch quiz')
-
-        const data = await res.json()
-        const parsed = quizApiResponseSchema.safeParse(data)
-
-        if (!parsed.success) {
-          console.error('Invalid quiz data from API:', parsed.error)
-          return
-        }
+        const { quiz }: { quiz: ApiQuiz } = await res.json()
 
         form.reset({
-          title: parsed.data.quiz.title ?? '',
-          description: parsed.data.quiz.description ?? '',
-          questions: parsed.data.quiz.questions.map((q) => ({
-            text: q.text ?? '',
-            answer: q.answer ?? '',
-            points: q.points ?? 1
-          }))
+          title: quiz.title,
+          description: quiz.description ?? '',
+          questions: quiz.questions.map(
+            (q): QuestionFormValues => ({
+              text: q.text,
+              points: q.points,
+              answer: q.options.find((o) => o.isCorrect)?.text ?? ''
+            })
+          )
         })
       } catch (err) {
         console.error(err)
@@ -89,7 +92,7 @@ export default function UpdateIdentificationQuizForm() {
     }
 
     fetchQuiz()
-  }, [quizId, form])
+  }, [quizId, form, teacherId])
 
   const onSubmit = async (data: QuizFormValues) => {
     try {
@@ -100,7 +103,7 @@ export default function UpdateIdentificationQuizForm() {
           ...data,
           type: 'IDENTIFICATION',
           totalPoints: data.questions.reduce((acc, q) => acc + q.points, 0),
-          teacherId: 1,
+          teacherId: teacherId,
           questions: data.questions.map((q, index) => ({
             text: q.text,
             type: 'IDENTIFICATION',
@@ -117,7 +120,7 @@ export default function UpdateIdentificationQuizForm() {
         return
       }
 
-      router.push('/teacher-dashboard/quizzes')
+      router.push(`/teacher-dashboard/${teacherId}/quizzes`)
     } catch (err) {
       console.error('Unexpected error:', err)
     }
@@ -142,13 +145,14 @@ export default function UpdateIdentificationQuizForm() {
                   <FormItem>
                     <FormLabel>Title</FormLabel>
                     <FormControl>
-                      <Input placeholder='Enter quiz title' {...field} value={field.value ?? ''} />
+                      <Input placeholder='Enter quiz title' {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
 
+              {/* Description */}
               <FormField
                 control={form.control}
                 name='description'
@@ -156,24 +160,27 @@ export default function UpdateIdentificationQuizForm() {
                   <FormItem>
                     <FormLabel>Description</FormLabel>
                     <FormControl>
-                      <Textarea placeholder='Enter quiz description' {...field} value={field.value ?? ''} />
+                      <Textarea placeholder='Enter quiz description' {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
 
-              <Accordion type='single' collapsible className='space-y-4'>
+              {/* Questions */}
+              <div className='space-y-6'>
                 {questionFields.map((q, qIndex) => (
                   <QuestionItem key={q.id} qIndex={qIndex} control={form.control} removeQuestion={removeQuestion} />
                 ))}
-              </Accordion>
+              </div>
 
+              {/* Add Question */}
               <Button type='button' variant='outline' className='w-full' onClick={() => addQuestion(DEFAULT_QUESTION)}>
                 <PlusCircle className='h-4 w-4 mr-1' />
                 Add Question
               </Button>
 
+              {/* Footer */}
               <div className='sticky bottom-0 bg-white border-t pt-4 mt-6 flex justify-between items-center'>
                 <span className='text-sm text-muted-foreground'>
                   {questionFields.length} questions · {totalPoints} points
@@ -198,14 +205,13 @@ function QuestionItem({
   removeQuestion: (index: number) => void
 }) {
   return (
-    <AccordionItem value={`q-${qIndex}`} className='border rounded-lg shadow-sm'>
-      <AccordionTrigger>
-        <div className='flex justify-between items-center w-full'>
-          <span className='font-semibold'>Question {qIndex + 1}</span>
-          <Badge variant='secondary'>Identification</Badge>
-        </div>
-      </AccordionTrigger>
-      <AccordionContent className='space-y-4 p-4'>
+    <Card className='border rounded-lg shadow-sm'>
+      <CardHeader className='flex flex-row justify-between items-center'>
+        <CardTitle className='text-base'>Question {qIndex + 1}</CardTitle>
+        <Badge variant='secondary'>Identification</Badge>
+      </CardHeader>
+      <CardContent className='space-y-4'>
+        {/* Question Text */}
         <FormField
           control={control}
           name={`questions.${qIndex}.text`}
@@ -213,13 +219,14 @@ function QuestionItem({
             <FormItem>
               <FormLabel>Question</FormLabel>
               <FormControl>
-                <Input placeholder='Enter question text' {...field} value={field.value ?? ''} />
+                <Input placeholder='Enter question text' {...field} autoFocus />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
 
+        {/* Correct Answer */}
         <FormField
           control={control}
           name={`questions.${qIndex}.answer`}
@@ -227,13 +234,14 @@ function QuestionItem({
             <FormItem>
               <FormLabel>Correct Answer</FormLabel>
               <FormControl>
-                <Input placeholder='Enter the correct answer' {...field} value={field.value ?? ''} />
+                <Input placeholder='Enter the correct answer' {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
 
+        {/* Points */}
         <FormField
           control={control}
           name={`questions.${qIndex}.points`}
@@ -241,23 +249,19 @@ function QuestionItem({
             <FormItem>
               <FormLabel>Points</FormLabel>
               <FormControl>
-                <Input
-                  type='number'
-                  min={1}
-                  value={field.value ?? 1}
-                  onChange={(e) => field.onChange(Number(e.target.value))}
-                />
+                <Input type='number' min={1} {...field} onChange={(e) => field.onChange(Number(e.target.value))} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
 
+        {/* Remove Question */}
         <Button type='button' variant='destructive' size='sm' onClick={() => removeQuestion(qIndex)}>
           <Trash2 className='h-4 w-4 mr-1' />
           Remove Question
         </Button>
-      </AccordionContent>
-    </AccordionItem>
+      </CardContent>
+    </Card>
   )
 }

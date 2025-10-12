@@ -80,7 +80,7 @@ export async function POST(req: Request) {
       },
       include: {
         questions: {
-          include: { options: true }
+          include: { options: true, answers: { select: { textAnswer: true } } }
         }
       }
     })
@@ -99,16 +99,21 @@ export async function POST(req: Request) {
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url)
-    const id = searchParams.get('id')
 
-    if (id) {
-      // Fetch single quiz by ID
-      const quiz = await prisma.quiz.findUnique({
-        where: { id: Number(id) },
+    // Extract teacherId from query string (like a request body for GET)
+    const teacherId = searchParams.get('teacherId')
+    const quizId = searchParams.get('quizId') // optional if fetching single quiz
+
+    if (!teacherId) {
+      return NextResponse.json({ message: 'teacherId is required', success: false }, { status: 400 })
+    }
+
+    if (quizId) {
+      // Fetch single quiz
+      const quiz = await prisma.quiz.findFirst({
+        where: { id: Number(quizId), teacherId: Number(teacherId) },
         include: {
-          questions: {
-            include: { options: true }
-          },
+          questions: { include: { options: true } },
           teacher: true
         }
       })
@@ -120,20 +125,19 @@ export async function GET(req: Request) {
       return NextResponse.json({ success: true, quiz })
     }
 
-    // Fetch all quizzes
+    // Fetch all quizzes for this teacher
     const quizzes = await prisma.quiz.findMany({
+      where: { teacherId: Number(teacherId) },
       include: {
-        questions: {
-          include: { options: true }
-        },
+        questions: { include: { options: true, answers: true } },
         teacher: true
       },
       orderBy: { createdAt: 'desc' }
     })
 
     return NextResponse.json({ success: true, quizzes })
-  } catch (error) {
-    console.error('Get quiz error:', error)
+  } catch (err) {
+    console.error('GET /api/quiz error:', err)
     return NextResponse.json({ message: 'Failed to fetch quiz(es)', success: false }, { status: 500 })
   }
 }
