@@ -156,14 +156,14 @@ export default function AuthPage() {
         </div>
       </div>
 
-      {/* Panels */}
+      {/*Panels*/}
       <div className='absolute h-full w-full top-0 left-0 grid grid-cols-2 z-[7]'>
         <InfoPanel
           icon={GraduationCap}
           title='Student Portal'
           description='Access your courses, assignments, and track your academic progress.'
           buttonText='Teacher Login'
-          imageUrl='/student-o.png'
+          imageUrl='/o-student.png'
           imageAlt='Student illustration'
           isLeft={true}
           isActive={isTeacherMode}
@@ -175,7 +175,7 @@ export default function AuthPage() {
           title='Teacher Portal'
           description='Manage your classes, create assignments, and monitor student performance.'
           buttonText='Student Login'
-          imageUrl='/teacher-o.png'
+          imageUrl='/o-teacher.png'
           imageAlt='Teacher illustration'
           isLeft={false}
           isActive={isTeacherMode}
