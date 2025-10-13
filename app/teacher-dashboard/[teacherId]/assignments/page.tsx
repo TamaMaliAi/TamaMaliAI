@@ -8,22 +8,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { motion } from 'framer-motion'
+import moment from 'moment'
 import { useTeacherRouteParams } from '../hooks/useTeacherRouteParams'
-
-// Helper: Format time difference
-const timeAgo = (dateString: string) => {
-  const date = new Date(dateString)
-  const diff = Date.now() - date.getTime()
-  const seconds = Math.floor(diff / 1000)
-  const minutes = Math.floor(seconds / 60)
-  const hours = Math.floor(minutes / 60)
-  const days = Math.floor(hours / 24)
-
-  if (days > 0) return `${days} day${days > 1 ? 's' : ''} ago`
-  if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''} ago`
-  if (minutes > 0) return `${minutes} min${minutes > 1 ? 's' : ''} ago`
-  return 'Just now'
-}
 
 type Assignment = {
   id: number
@@ -49,9 +35,16 @@ type Assignment = {
 export default function AssignmentsPage() {
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [loading, setLoading] = useState(true)
+  const [mounted, setMounted] = useState(false)
   const router = useRouter()
   const { teacherId } = useTeacherRouteParams()
 
+  // ✅ Prevent hydration mismatch
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // ✅ Fetch data client-side only
   useEffect(() => {
     const fetchAssignments = async () => {
       try {
@@ -69,13 +62,17 @@ export default function AssignmentsPage() {
   }, [])
 
   const getStatusBadge = (assignment: Assignment) => {
-    const due = assignment.dueDate ? new Date(assignment.dueDate) : null
-    if (!due) return <Badge variant='outline'>No due date</Badge>
+    if (!assignment.dueDate) return <Badge variant='outline'>No due date</Badge>
 
-    const now = new Date()
-    if (due < now) return <Badge className='bg-red-100 text-red-700 border-red-300'>Past Due</Badge>
-    if (due.getTime() - now.getTime() < 2 * 24 * 60 * 60 * 1000)
+    const now = moment()
+    const due = moment(assignment.dueDate)
+
+    if (due.isBefore(now)) {
+      return <Badge className='bg-red-100 text-red-700 border-red-300'>Past Due</Badge>
+    }
+    if (due.diff(now, 'hours') < 48) {
       return <Badge className='bg-yellow-100 text-yellow-700 border-yellow-300'>Due Soon</Badge>
+    }
     return <Badge className='bg-green-100 text-green-700 border-green-300'>Ongoing</Badge>
   }
 
@@ -143,17 +140,31 @@ export default function AssignmentsPage() {
                 </p>
 
                 {assignment.dueDate && (
-                  <p className='text-xs text-gray-500'>⏰ Due: {new Date(assignment.dueDate).toLocaleDateString()}</p>
+                  <p className='text-xs text-gray-500'>⏰ Due: {moment(assignment.dueDate).format('MMM D, YYYY')}</p>
                 )}
 
                 <div className='border-t pt-2 text-[11px] text-gray-400 flex justify-between'>
-                  <span>Created {timeAgo(assignment.createdAt)}</span>
-                  <span>{new Date(assignment.createdAt).toLocaleDateString()}</span>
+                  <span>Created {moment(assignment.createdAt).fromNow()}</span>
+                  <span>{moment(assignment.createdAt).format('MMM D, YYYY')}</span>
                 </div>
               </CardContent>
             </Card>
           </motion.div>
         ))}
+      </div>
+    )
+  }
+
+  // 🧩 Prevent hydration mismatch (don’t render dynamic time before client mounts)
+  if (!mounted) {
+    return (
+      <div className='p-6'>
+        <Skeleton className='h-8 w-48 mb-4' />
+        <div className='grid grid-cols-2 gap-4'>
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className='h-40 w-full rounded-xl' />
+          ))}
+        </div>
       </div>
     )
   }
