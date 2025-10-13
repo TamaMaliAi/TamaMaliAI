@@ -1,16 +1,18 @@
-// pages/AuthPage.tsx (Main component using all the smaller components)
 'use client'
+
 import { SetStateAction, useState } from 'react'
 import { GraduationCap, BookOpen } from 'lucide-react'
 import Message from './components/Message'
 import AuthForm from './components/AuthForm'
 import InfoPanel from './components/InfoPanel'
 import BackgroundCircle from './components/BackgroundCircle'
-import Logo from "./components/Logo";
+import Logo from './components/Logo'
 import axios from 'axios'
-
+import { useRouter } from 'next/navigation'
 
 export default function AuthPage() {
+  const router = useRouter()
+
   const [isTeacherMode, setIsTeacherMode] = useState(false)
   const [isSignUpMode, setIsSignUpMode] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -26,10 +28,7 @@ export default function AuthPage() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value
-    }))
+    setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
   const showMessage = (msg: SetStateAction<string>) => {
@@ -43,11 +42,14 @@ export default function AuthPage() {
 
     try {
       if (isSignUpMode) {
-        if(formData.password !== formData.confirmPassword){
-          showMessage('Password does not match')
+        // ✅ Sign Up
+        if (formData.password !== formData.confirmPassword) {
+          showMessage('Passwords do not match')
+          setIsLoading(false)
           return
         }
-        const response = await axios.post('/api/register', {
+
+        const { data } = await axios.post('/api/register', {
           firstName: formData.firstName,
           lastName: formData.lastName,
           email: formData.email,
@@ -55,10 +57,8 @@ export default function AuthPage() {
           role: userType
         })
 
-        const data = response.data
-
         if (data.success) {
-          showMessage('Account created! Please login.')
+          showMessage('Account created! Please log in.')
           setIsSignUpMode(false)
           setFormData({
             username: '',
@@ -79,16 +79,14 @@ export default function AuthPage() {
         })
 
         const data = response.data
+        console.log('USER DATA:', data)
 
         if (data.success) {
-          //Store user role in localStorage
-          localStorage.setItem('userRole', userType)
-
-          //Redirect based on role
-          if (userType === 'TEACHER') {
-            window.location.href = '/teacher-dashboard'
+          const { user } = data
+          if (user.role === 'TEACHER') {
+            window.location.href = `/teacher-dashboard/${user.id}`
           } else {
-            window.location.href = '/student-dashboard'
+            window.location.href = `/student-dashboard/${user.id}`
           }
         } else {
           showMessage(data.message)
@@ -121,14 +119,10 @@ export default function AuthPage() {
   return (
     <div className='relative w-full min-h-screen bg-white overflow-hidden'>
       <Message message={message} isVisible={!!message} />
-
       <BackgroundCircle isTeacherMode={isTeacherMode} />
-
       <Logo isTeacherMode={isTeacherMode} />
 
-      
-
-      {/*Forms container*/}
+      {/* Forms container */}
       <div className='absolute w-full h-full top-0 left-0'>
         <div
           className={

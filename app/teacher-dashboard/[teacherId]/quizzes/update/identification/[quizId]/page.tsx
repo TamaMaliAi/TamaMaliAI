@@ -10,26 +10,14 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion'
 import { Badge } from '@/components/ui/badge'
-import { Switch } from '@/components/ui/switch'
-import { PlusCircle, Trash2 } from 'lucide-react'
-
-/* ----------------- 🔥 ZOD SCHEMA ----------------- */
-const optionSchema = z.object({
-  text: z.string().min(1, 'Option text is required'),
-  isCorrect: z.boolean()
-})
+import { Trash2, PlusCircle } from 'lucide-react'
+import { useTeacherRouteParams } from '@/app/teacher-dashboard/[teacherId]/hooks/useTeacherRouteParams'
 
 const questionSchema = z.object({
   text: z.string().min(1, 'Question text is required'),
-  points: z.number().min(1, 'Points must be at least 1'),
-  options: z
-    .array(optionSchema)
-    .min(2, 'Each question must have at least 2 options')
-    .refine((opts) => opts.some((o) => o.isCorrect), {
-      message: 'At least one option must be marked correct'
-    })
+  answer: z.string().min(1, 'Answer is required'),
+  points: z.number().min(1, 'Points must be at least 1')
 })
 
 const quizSchema = z.object({
@@ -39,27 +27,34 @@ const quizSchema = z.object({
 })
 
 type QuizFormValues = z.infer<typeof quizSchema>
+type QuestionFormValues = QuizFormValues['questions'][number]
 
-/* ----------------- 🔥 COMPONENT ----------------- */
-export default function MultipleChoiceQuizForm() {
+const DEFAULT_QUESTION: QuestionFormValues = { text: '', answer: '', points: 1 }
+
+interface ApiQuestion {
+  text: string
+  points: number
+  options: { text: string; isCorrect: boolean }[]
+}
+
+interface ApiQuiz {
+  title: string
+  description?: string
+  questions: ApiQuestion[]
+}
+
+export default function UpdateIdentificationQuizForm() {
   const router = useRouter()
+  const { teacherId, quizId } = useTeacherRouteParams()
 
   const form = useForm<QuizFormValues>({
     resolver: zodResolver(quizSchema),
     defaultValues: {
       title: '',
       description: '',
-      questions: [
-        {
-          text: '',
-          points: 1,
-          options: [
-            { text: '', isCorrect: false },
-            { text: '', isCorrect: false }
-          ]
-        }
-      ]
-    }
+      questions: [DEFAULT_QUESTION]
+    },
+    mode: 'onChange'
   })
 
   const {
@@ -71,33 +66,63 @@ export default function MultipleChoiceQuizForm() {
     name: 'questions'
   })
 
+  React.useEffect(() => {
+    if (!quizId) return
+
+    const fetchQuiz = async () => {
+      try {
+        const res = await fetch(`/api/quiz?teacherId=${teacherId}&quizId=${quizId}`)
+        if (!res.ok) throw new Error('Failed to fetch quiz')
+        const { quiz }: { quiz: ApiQuiz } = await res.json()
+
+        form.reset({
+          title: quiz.title,
+          description: quiz.description ?? '',
+          questions: quiz.questions.map(
+            (q): QuestionFormValues => ({
+              text: q.text,
+              points: q.points,
+              answer: q.options.find((o) => o.isCorrect)?.text ?? ''
+            })
+          )
+        })
+      } catch (err) {
+        console.error(err)
+      }
+    }
+
+    fetchQuiz()
+  }, [quizId, form, teacherId])
+
   const onSubmit = async (data: QuizFormValues) => {
     try {
-      const res = await fetch('/api/quiz', {
-        method: 'POST',
+      const res = await fetch(`/api/quiz?id=${quizId}`, {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...data,
-          type: 'MULTIPLE_CHOICE',
+          type: 'IDENTIFICATION',
           totalPoints: data.questions.reduce((acc, q) => acc + q.points, 0),
-          teacherId: 1,
+          teacherId: teacherId,
           questions: data.questions.map((q, index) => ({
             text: q.text,
-            type: 'MULTIPLE_CHOICE',
+            type: 'IDENTIFICATION',
             order: index + 1,
             points: q.points,
-            options: q.options
+            answer: q.answer
           }))
         })
       })
 
-      if (res.ok) {
-        router.push('/teacher-dashboard/quizzes')
-      } else {
-        console.error('Failed to create quiz', await res.json())
+      if (!res.ok) {
+        const error = await res.json()
+        console.error('Failed to update quiz:', error)
+        return
       }
+
+      router.push(`/teacher-dashboard/${teacherId}/quizzes`)
     } catch (err) {
-      console.error('Error:', err)
+      console.error('Unexpected error:', err)
     }
   }
 
@@ -107,7 +132,7 @@ export default function MultipleChoiceQuizForm() {
     <div className='max-w-4xl mx-auto p-6'>
       <Card>
         <CardHeader>
-          <CardTitle>Create Multiple Choice Quiz</CardTitle>
+          <CardTitle>Update Identification Quiz</CardTitle>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -143,37 +168,24 @@ export default function MultipleChoiceQuizForm() {
               />
 
               {/* Questions */}
-              <Accordion type='single' collapsible className='space-y-4'>
+              <div className='space-y-6'>
                 {questionFields.map((q, qIndex) => (
                   <QuestionItem key={q.id} qIndex={qIndex} control={form.control} removeQuestion={removeQuestion} />
                 ))}
-              </Accordion>
+              </div>
 
-              <Button
-                type='button'
-                variant='outline'
-                className='w-full'
-                onClick={() =>
-                  addQuestion({
-                    text: '',
-                    points: 1,
-                    options: [
-                      { text: '', isCorrect: false },
-                      { text: '', isCorrect: false }
-                    ]
-                  })
-                }
-              >
+              {/* Add Question */}
+              <Button type='button' variant='outline' className='w-full' onClick={() => addQuestion(DEFAULT_QUESTION)}>
                 <PlusCircle className='h-4 w-4 mr-1' />
                 Add Question
               </Button>
 
-              {/* Sticky summary footer */}
+              {/* Footer */}
               <div className='sticky bottom-0 bg-white border-t pt-4 mt-6 flex justify-between items-center'>
                 <span className='text-sm text-muted-foreground'>
                   {questionFields.length} questions · {totalPoints} points
                 </span>
-                <Button type='submit'>Save Quiz</Button>
+                <Button type='submit'>Update Quiz</Button>
               </div>
             </form>
           </Form>
@@ -183,7 +195,6 @@ export default function MultipleChoiceQuizForm() {
   )
 }
 
-/* ----------------- 🔥 Child Component ----------------- */
 function QuestionItem({
   qIndex,
   control,
@@ -193,25 +204,14 @@ function QuestionItem({
   control: Control<QuizFormValues>
   removeQuestion: (index: number) => void
 }) {
-  const {
-    fields: optionFields,
-    append: addOption,
-    remove: removeOption
-  } = useFieldArray({
-    control,
-    name: `questions.${qIndex}.options`
-  })
-
   return (
-    <AccordionItem value={`q-${qIndex}`} className='border rounded-lg shadow-sm'>
-      <AccordionTrigger>
-        <div className='flex justify-between items-center w-full'>
-          <span className='font-semibold'>Question {qIndex + 1}</span>
-          <Badge variant='secondary'>{optionFields.length} options</Badge>
-        </div>
-      </AccordionTrigger>
-      <AccordionContent className='space-y-4 p-4'>
-        {/* Question text */}
+    <Card className='border rounded-lg shadow-sm'>
+      <CardHeader className='flex flex-row justify-between items-center'>
+        <CardTitle className='text-base'>Question {qIndex + 1}</CardTitle>
+        <Badge variant='secondary'>Identification</Badge>
+      </CardHeader>
+      <CardContent className='space-y-4'>
+        {/* Question Text */}
         <FormField
           control={control}
           name={`questions.${qIndex}.text`}
@@ -220,6 +220,21 @@ function QuestionItem({
               <FormLabel>Question</FormLabel>
               <FormControl>
                 <Input placeholder='Enter question text' {...field} autoFocus />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Correct Answer */}
+        <FormField
+          control={control}
+          name={`questions.${qIndex}.answer`}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Correct Answer</FormLabel>
+              <FormControl>
+                <Input placeholder='Enter the correct answer' {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -241,50 +256,12 @@ function QuestionItem({
           )}
         />
 
-        {/* Options */}
-        <div className='space-y-3'>
-          {optionFields.map((o, oIndex) => (
-            <div key={o.id} className='flex items-center gap-3 border rounded-md p-3'>
-              <FormField
-                control={control}
-                name={`questions.${qIndex}.options.${oIndex}.text`}
-                render={({ field }) => (
-                  <FormItem className='flex-1'>
-                    <FormLabel className='text-sm'>Answer {oIndex + 1}</FormLabel>
-                    <FormControl>
-                      <Input placeholder='Enter answer option' {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={control}
-                name={`questions.${qIndex}.options.${oIndex}.isCorrect`}
-                render={({ field }) => (
-                  <FormItem className='flex items-center gap-2'>
-                    <FormLabel className='text-sm'>Correct</FormLabel>
-                    <FormControl>
-                      <Switch checked={field.value} onCheckedChange={field.onChange} />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-              <Button type='button' variant='ghost' size='icon' onClick={() => removeOption(oIndex)}>
-                <Trash2 className='h-4 w-4' />
-              </Button>
-            </div>
-          ))}
-          <Button type='button' variant='secondary' size='sm' onClick={() => addOption({ text: '', isCorrect: false })}>
-            <PlusCircle className='h-4 w-4 mr-1' />
-            Add Answer
-          </Button>
-        </div>
-
+        {/* Remove Question */}
         <Button type='button' variant='destructive' size='sm' onClick={() => removeQuestion(qIndex)}>
+          <Trash2 className='h-4 w-4 mr-1' />
           Remove Question
         </Button>
-      </AccordionContent>
-    </AccordionItem>
+      </CardContent>
+    </Card>
   )
 }

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { useTeacherRouteParams } from '../hooks/useTeacherRouteParams'
 
 type Quiz = {
   id: number
@@ -21,13 +22,20 @@ export default function QuizzesPage() {
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
+  const { teacherId } = useTeacherRouteParams()
+
   useEffect(() => {
     const fetchQuizzes = async () => {
+      if (!teacherId) return
+
       try {
-        const res = await fetch('/api/quiz')
+        const res = await fetch(`/api/quiz?teacherId=${teacherId}`)
         const data = await res.json()
+
         if (data.success) {
           setQuizzes(data.quizzes)
+        } else {
+          console.error('Error fetching quizzes:', data.message)
         }
       } catch (err) {
         console.error('Failed to fetch quizzes:', err)
@@ -37,7 +45,7 @@ export default function QuizzesPage() {
     }
 
     fetchQuizzes()
-  }, [])
+  }, [teacherId])
 
   const renderQuizzes = (type: 'MULTIPLE_CHOICE' | 'IDENTIFICATION') => {
     const filtered = quizzes.filter((q) => q.type === type)
@@ -74,7 +82,7 @@ export default function QuizzesPage() {
             className='cursor-pointer rounded-2xl border hover:shadow-lg transition-all duration-200 hover:-translate-y-1'
             onClick={() =>
               router.push(
-                `/teacher-dashboard/quizzes/update/${
+                `/teacher-dashboard/${teacherId}/quizzes/update/${
                   quiz.type === 'MULTIPLE_CHOICE' ? 'multiple-choice' : 'identification'
                 }/${quiz.id}`
               )
@@ -103,7 +111,7 @@ export default function QuizzesPage() {
         <Button
           size='sm'
           className='rounded-xl px-4 py-2'
-          onClick={() => router.push('/teacher-dashboard/quizzes/create')}
+          onClick={() => router.push(`/teacher-dashboard/${teacherId}/quizzes/create`)}
         >
           + Create Quiz
         </Button>

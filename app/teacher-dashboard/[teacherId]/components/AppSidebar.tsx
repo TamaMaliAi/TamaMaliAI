@@ -1,6 +1,7 @@
 'use client'
-import { Calendar, Home, Inbox, ChevronRight, LogOutIcon } from 'lucide-react'
-import { useState, useEffect } from 'react'
+
+import { Calendar, Home, Inbox, ChevronRight, LogOutIcon, BookOpen, ClipboardList } from 'lucide-react'
+import { useState, useEffect, useMemo } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -13,64 +14,91 @@ import {
   SidebarMenuButton,
   SidebarMenuItem
 } from '@/components/ui/sidebar'
-
-const items = [
-  {
-    id: 'home',
-    title: 'Home',
-    url: '/teacher-dashboard',
-    icon: Home,
-    color: 'text-orange-600',
-    bgHover: 'hover:bg-orange-50',
-    activeColor: 'text-orange-700',
-    activeBg: 'bg-orange-100',
-    borderColor: 'border-orange-300'
-  },
-  {
-    id: 'inbox',
-    title: 'Students',
-    url: '/teacher-dashboard/students',
-    icon: Inbox,
-    color: 'text-orange-600',
-    bgHover: 'hover:bg-orange-50',
-    activeColor: 'text-orange-700',
-    activeBg: 'bg-orange-100',
-    borderColor: 'border-orange-300'
-  },
-  {
-    id: 'calendar',
-    title: 'Quizzes',
-    url: '/teacher-dashboard/quizzes',
-    icon: Calendar,
-    color: 'text-orange-600',
-    bgHover: 'hover:bg-orange-50',
-    activeColor: 'text-orange-700',
-    activeBg: 'bg-orange-100',
-    borderColor: 'border-orange-300'
-  },
-  {
-    id: 'sign-out',
-    title: 'Sign-out',
-    url: '/sign-out',
-    icon: LogOutIcon,
-    color: 'text-slate-600',
-    bgHover: 'hover:bg-slate-50',
-    activeColor: 'text-slate-700',
-    activeBg: 'bg-slate-100',
-    borderColor: 'border-slate-200'
-  }
-]
+import { useTeacherRouteParams } from '../hooks/useTeacherRouteParams'
 
 export function AppSidebar() {
   const [activeItem, setActiveItem] = useState('home')
   const pathname = usePathname()
+  const { teacherId } = useTeacherRouteParams()
+
+  const items = useMemo(
+    () => [
+      {
+        id: 'home',
+        title: 'Home',
+        url: `/teacher-dashboard/${teacherId}`,
+        icon: Home,
+        color: 'text-orange-600',
+        bgHover: 'hover:bg-orange-50',
+        activeColor: 'text-orange-700',
+        activeBg: 'bg-orange-100',
+        borderColor: 'border-orange-300'
+      },
+      {
+        id: 'inbox',
+        title: 'Students',
+        url: `/teacher-dashboard/${teacherId}/students`,
+        icon: Inbox,
+        color: 'text-orange-600',
+        bgHover: 'hover:bg-orange-50',
+        activeColor: 'text-orange-700',
+        activeBg: 'bg-orange-100',
+        borderColor: 'border-orange-300'
+      },
+      {
+        id: 'calendar',
+        title: 'Quizzes',
+        url: `/teacher-dashboard/${teacherId}/quizzes`,
+        icon: Calendar,
+        color: 'text-orange-600',
+        bgHover: 'hover:bg-orange-50',
+        activeColor: 'text-orange-700',
+        activeBg: 'bg-orange-100',
+        borderColor: 'border-orange-300'
+      },
+      {
+        id: 'classes',
+        title: 'Classes',
+        url: `/teacher-dashboard/${teacherId}/classes`,
+        icon: BookOpen,
+        color: 'text-orange-600',
+        bgHover: 'hover:bg-orange-50',
+        activeColor: 'text-orange-700',
+        activeBg: 'bg-orange-100',
+        borderColor: 'border-orange-300'
+      },
+      {
+        id: 'assignments',
+        title: 'Assignments',
+        url: `/teacher-dashboard/${teacherId}/assignments`,
+        icon: ClipboardList,
+        color: 'text-orange-600',
+        bgHover: 'hover:bg-orange-50',
+        activeColor: 'text-orange-700',
+        activeBg: 'bg-orange-100',
+        borderColor: 'border-orange-300'
+      },
+      {
+        id: 'sign-out',
+        title: 'Sign-out',
+        url: '/sign-out',
+        icon: LogOutIcon,
+        color: 'text-slate-600',
+        bgHover: 'hover:bg-slate-50',
+        activeColor: 'text-slate-700',
+        activeBg: 'bg-slate-100',
+        borderColor: 'border-slate-200'
+      }
+    ],
+    [teacherId]
+  )
 
   useEffect(() => {
     const currentItem = items.find((item) => item.url === pathname)
     if (currentItem) {
       setActiveItem(currentItem.id)
     }
-  }, [pathname])
+  }, [pathname, items])
 
   return (
     <Sidebar className='border-r border-orange-200 bg-gradient-to-b from-orange-50 to-white'>
@@ -89,16 +117,19 @@ export function AppSidebar() {
           <div className='h-px bg-gradient-to-r from-orange-200 via-orange-300 to-orange-200'></div>
         </div>
 
+        {/* Navigation */}
         <SidebarGroup>
           <SidebarGroupLabel className='text-xs font-semibold text-orange-600 uppercase tracking-wider mb-3 px-2'>
             Navigation
           </SidebarGroupLabel>
+
           <SidebarGroupContent>
             <SidebarMenu className='space-y-1'>
               {items.map((item) => {
                 const isActive = activeItem === item.id
+
                 return (
-                  <SidebarMenuItem key={item.title}>
+                  <SidebarMenuItem key={item.id}>
                     <SidebarMenuButton asChild>
                       <Link
                         href={item.url}
@@ -109,15 +140,13 @@ export function AppSidebar() {
                               : `text-slate-700 hover:translate-x-1 hover:shadow-sm ${item.bgHover} border-transparent hover:border-orange-200`
                           }`}
                       >
-                        {/* Active state background gradient */}
                         {isActive && (
                           <div className='absolute inset-0 bg-gradient-to-r from-orange-100/60 to-orange-50/40'></div>
                         )}
-                        {/* Subtle gradient background on hover for non-active items */}
                         {!isActive && (
                           <div className='absolute inset-0 bg-gradient-to-r from-orange-50/0 to-orange-50/80 opacity-0 group-hover:opacity-100 transition-opacity duration-200'></div>
                         )}
-                        {/* Icon with custom color */}
+
                         <div
                           className={`relative z-10 transition-transform duration-200 ${
                             isActive ? `${item.activeColor} scale-105` : `${item.color} group-hover:scale-110`
@@ -125,7 +154,7 @@ export function AppSidebar() {
                         >
                           <item.icon size={20} className='shrink-0' />
                         </div>
-                        {/* Text */}
+
                         <span
                           className={`relative z-10 text-sm transition-colors duration-200 ${
                             isActive ? 'font-semibold' : 'font-medium group-hover:text-slate-900'
@@ -133,7 +162,7 @@ export function AppSidebar() {
                         >
                           {item.title}
                         </span>
-                        {/* Arrow indicator - always visible for active, on hover for others */}
+
                         <ChevronRight
                           size={14}
                           className={`relative z-10 ml-auto transition-all duration-200 ${
@@ -142,7 +171,7 @@ export function AppSidebar() {
                               : 'text-slate-400 opacity-0 group-hover:opacity-100 transform group-hover:translate-x-1'
                           }`}
                         />
-                        {/* Active state left border indicator */}
+
                         {isActive && (
                           <div
                             className={`absolute left-0 top-1/2 transform -translate-y-1/2 w-1 h-8 rounded-r-full ${
@@ -160,8 +189,6 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-
-        {/* Bottom section */}
       </SidebarContent>
     </Sidebar>
   )

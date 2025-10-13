@@ -3,23 +3,25 @@
 import Link from 'next/link'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { BookOpen, HelpCircle } from 'lucide-react'
-
-const quizOptions = [
-  {
-    title: 'Multiple Choice',
-    href: '/teacher-dashboard/quizzes/create/multiple-choice',
-    description: 'Create quizzes with multiple choice questions',
-    icon: BookOpen
-  },
-  {
-    title: 'Identification',
-    href: '/teacher-dashboard/quizzes/create/identification',
-    description: 'Create quizzes with written answers',
-    icon: HelpCircle
-  }
-]
+import { useTeacherRouteParams } from '../../hooks/useTeacherRouteParams'
 
 export default function QuizTypeSelection() {
+  const { teacherId } = useTeacherRouteParams()
+
+  const quizOptions = [
+    {
+      title: 'Multiple Choice',
+      href: `/teacher-dashboard/${teacherId}/quizzes/create/multiple-choice`,
+      description: 'Create quizzes with multiple choice questions',
+      icon: BookOpen
+    },
+    {
+      title: 'Identification',
+      href: `/teacher-dashboard/${teacherId}/quizzes/create/identification`,
+      description: 'Create quizzes with written answers',
+      icon: HelpCircle
+    }
+  ]
   return (
     <div className='min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100 p-6'>
       <div className='mb-12 text-center'>
