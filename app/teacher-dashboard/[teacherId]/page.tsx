@@ -1,13 +1,25 @@
 'use client'
 
 import { useMemo } from 'react'
-import { mockUsers } from './hooks/students'
+import moment from 'moment'
+import { mockUsers as rawUsers } from './hooks/students'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { motion } from 'framer-motion'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import { ArrowUpRight, Users, CalendarDays, UserPlus } from 'lucide-react'
 
 export default function TeacherDashboardHome() {
+  // Convert dates on client to avoid hydration mismatch
+  const mockUsers = useMemo(
+    () =>
+      rawUsers.map((user) => ({
+        ...user,
+        createdAt: moment(user.createdAt).toDate(),
+        updatedAt: moment(user.updatedAt).toDate()
+      })),
+    []
+  )
+
   // Compute analytics
   const analytics = useMemo(() => {
     const usersByDate = mockUsers.reduce<Record<string, number>>((acc, user) => {
@@ -33,10 +45,10 @@ export default function TeacherDashboardHome() {
 
     const growthRate = prevWeekCount > 0 ? ((newThisWeek - prevWeekCount) / prevWeekCount) * 100 : 100
 
-    const recentSignups = mockUsers.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()).slice(0, 5)
+    const recentSignups = [...mockUsers].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()).slice(0, 5)
 
     return { totalStudents, newThisWeek, growthRate, chartData, recentSignups }
-  }, [])
+  }, [mockUsers])
 
   return (
     <div className='p-6 space-y-8'>
@@ -47,6 +59,7 @@ export default function TeacherDashboardHome() {
 
       {/* Stats Grid */}
       <div className='grid gap-4 md:grid-cols-3'>
+        {/* Total Students */}
         <motion.div whileHover={{ scale: 1.03 }} transition={{ type: 'spring' }}>
           <Card className='shadow-md'>
             <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
@@ -60,6 +73,7 @@ export default function TeacherDashboardHome() {
           </Card>
         </motion.div>
 
+        {/* New This Week */}
         <motion.div whileHover={{ scale: 1.03 }} transition={{ type: 'spring' }}>
           <Card className='shadow-md'>
             <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
@@ -73,6 +87,7 @@ export default function TeacherDashboardHome() {
           </Card>
         </motion.div>
 
+        {/* Growth Rate */}
         <motion.div whileHover={{ scale: 1.03 }} transition={{ type: 'spring' }}>
           <Card className='shadow-md'>
             <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
@@ -128,9 +143,7 @@ export default function TeacherDashboardHome() {
                 <p className='font-medium'>{user.name}</p>
                 <p className='text-sm text-gray-500'>{user.email}</p>
               </div>
-              <p className='text-sm text-gray-400'>
-                {user.createdAt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-              </p>
+              <p className='text-sm text-gray-400'>{moment(user.createdAt).format('MMM D')}</p>
             </motion.div>
           ))}
         </CardContent>
