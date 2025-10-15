@@ -9,21 +9,20 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 import { ArrowUpRight, Users, CalendarDays, UserPlus } from 'lucide-react'
 
 export default function TeacherDashboardHome() {
-  // Convert dates on client to avoid hydration mismatch
   const mockUsers = useMemo(
     () =>
       rawUsers.map((user) => ({
         ...user,
-        createdAt: moment(user.createdAt).toDate(),
-        updatedAt: moment(user.updatedAt).toDate()
+        createdAt: moment(user.createdAt),
+        updatedAt: moment(user.updatedAt)
       })),
     []
   )
 
-  // Compute analytics
+  // ✅ Compute analytics using moment only
   const analytics = useMemo(() => {
     const usersByDate = mockUsers.reduce<Record<string, number>>((acc, user) => {
-      const date = user.createdAt.toISOString().split('T')[0]
+      const date = user.createdAt.format('YYYY-MM-DD')
       acc[date] = (acc[date] || 0) + 1
       return acc
     }, {})
@@ -34,18 +33,16 @@ export default function TeacherDashboardHome() {
     }))
 
     const totalStudents = mockUsers.length
-    const now = new Date()
-    const oneWeekAgo = new Date()
-    oneWeekAgo.setDate(now.getDate() - 7)
+    const now = moment()
+    const oneWeekAgo = moment().subtract(7, 'days')
+    const twoWeeksAgo = moment().subtract(14, 'days')
 
-    const newThisWeek = mockUsers.filter((u) => u.createdAt >= oneWeekAgo).length
-    const prevWeekCount = mockUsers.filter(
-      (u) => u.createdAt < oneWeekAgo && u.createdAt >= new Date(oneWeekAgo.getTime() - 7 * 24 * 60 * 60 * 1000)
-    ).length
+    const newThisWeek = mockUsers.filter((u) => u.createdAt.isAfter(oneWeekAgo)).length
+    const prevWeekCount = mockUsers.filter((u) => u.createdAt.isBetween(twoWeeksAgo, oneWeekAgo)).length
 
     const growthRate = prevWeekCount > 0 ? ((newThisWeek - prevWeekCount) / prevWeekCount) * 100 : 100
 
-    const recentSignups = [...mockUsers].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()).slice(0, 5)
+    const recentSignups = [...mockUsers].sort((a, b) => b.createdAt.valueOf() - a.createdAt.valueOf()).slice(0, 5)
 
     return { totalStudents, newThisWeek, growthRate, chartData, recentSignups }
   }, [mockUsers])
@@ -143,7 +140,7 @@ export default function TeacherDashboardHome() {
                 <p className='font-medium'>{user.name}</p>
                 <p className='text-sm text-gray-500'>{user.email}</p>
               </div>
-              <p className='text-sm text-gray-400'>{moment(user.createdAt).format('MMM D')}</p>
+              <p className='text-sm text-gray-400'>{user.createdAt.format('MMM D')}</p>
             </motion.div>
           ))}
         </CardContent>
