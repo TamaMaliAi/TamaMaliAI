@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -8,19 +8,13 @@ import { motion } from 'framer-motion'
 import { useRouter, useParams } from 'next/navigation'
 import StudentMultiSelect from './components/StudentMultiSelect'
 
-/* ----------------- 🔹 MOCK DATA ----------------- */
-const mockUsers = [
-  { id: 1, email: 'ella.martinez1@example.com', name: 'Ella Martinez', role: 'STUDENT' },
-  { id: 2, email: 'liam.garcia2@example.com', name: 'Liam Garcia', role: 'STUDENT' },
-  { id: 3, email: 'sophia.kim3@example.com', name: 'Sophia Kim', role: 'STUDENT' },
-  { id: 4, email: 'noah.chen4@example.com', name: 'Noah Chen', role: 'STUDENT' },
-  { id: 5, email: 'ava.perez5@example.com', name: 'Ava Perez', role: 'STUDENT' },
-  { id: 6, email: 'ethan.nguyen6@example.com', name: 'Ethan Nguyen', role: 'STUDENT' },
-  { id: 7, email: 'mia.ramirez7@example.com', name: 'Mia Ramirez', role: 'STUDENT' },
-  { id: 8, email: 'oliver.lee8@example.com', name: 'Oliver Lee', role: 'STUDENT' },
-  { id: 9, email: 'isabella.lopez9@example.com', name: 'Isabella Lopez', role: 'STUDENT' },
-  { id: 10, email: 'lucas.santos10@example.com', name: 'Lucas Santos', role: 'STUDENT' }
-]
+/* ----------------- 🔹 TYPES ----------------- */
+interface Student {
+  id: number
+  email: string
+  name: string
+  role: string
+}
 
 /* ----------------- 🔹 VALIDATION ----------------- */
 const groupSchema = z.object({
@@ -46,6 +40,35 @@ export default function CreateGroupPage() {
 
   const [loading, setLoading] = useState(false)
   const [selectedStudents, setSelectedStudents] = useState<number[]>([])
+  const [students, setStudents] = useState<Student[]>([])
+  const [fetchingStudents, setFetchingStudents] = useState(true)
+  const [fetchError, setFetchError] = useState<string | null>(null)
+
+  // Fetch students on component mount
+  useEffect(() => {
+    const fetchStudents = async () => {
+      try {
+        setFetchingStudents(true)
+        setFetchError(null)
+
+        const res = await fetch('/api/students')
+        const data = await res.json()
+
+        if (res.ok && data.students) {
+          setStudents(data.students)
+        } else {
+          setFetchError(data.error || 'Failed to fetch students')
+        }
+      } catch (error) {
+        console.error('Error fetching students:', error)
+        setFetchError('Failed to load students. Please try again.')
+      } finally {
+        setFetchingStudents(false)
+      }
+    }
+
+    fetchStudents()
+  }, [])
 
   const onSubmit = async (data: GroupFormValues) => {
     if (!teacherId) return alert('Missing teacher ID')
@@ -66,7 +89,7 @@ export default function CreateGroupPage() {
 
       if (res.ok && result.success) {
         alert('✅ Group created successfully!')
-        router.push(`/teacher-dashboard/${teacherId}/groups`)
+        router.push(`/teacher-dashboard/${teacherId}/classes`)
       } else {
         alert(`❌ ${result.message || 'Failed to create group'}`)
       }
@@ -109,7 +132,32 @@ export default function CreateGroupPage() {
         {/* Student Selector */}
         <div>
           <label className='block text-sm font-medium text-gray-700 mb-2'>Select Students</label>
-          <StudentMultiSelect students={mockUsers} selectedIds={selectedStudents} onChange={setSelectedStudents} />
+
+          {fetchingStudents ? (
+            <div className='flex items-center justify-center py-12 border border-gray-200 rounded-lg'>
+              <div className='text-center'>
+                <div className='animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-500 mx-auto mb-3'></div>
+                <p className='text-sm text-gray-500'>Loading students...</p>
+              </div>
+            </div>
+          ) : fetchError ? (
+            <div className='py-12 border border-red-200 rounded-lg bg-red-50 text-center'>
+              <p className='text-sm text-red-600 mb-3'>{fetchError}</p>
+              <button
+                type='button'
+                onClick={() => window.location.reload()}
+                className='text-sm text-indigo-600 hover:text-indigo-700 font-medium'
+              >
+                Retry
+              </button>
+            </div>
+          ) : students.length === 0 ? (
+            <div className='py-12 border border-gray-200 rounded-lg bg-gray-50 text-center'>
+              <p className='text-sm text-gray-500'>No students available</p>
+            </div>
+          ) : (
+            <StudentMultiSelect students={students} selectedIds={selectedStudents} onChange={setSelectedStudents} />
+          )}
         </div>
 
         {/* Submit */}
@@ -117,9 +165,9 @@ export default function CreateGroupPage() {
           type='submit'
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
-          disabled={loading}
+          disabled={loading || fetchingStudents}
           className={`w-full py-3 rounded-xl font-medium shadow-md transition-all ${
-            loading
+            loading || fetchingStudents
               ? 'bg-gray-400 cursor-not-allowed text-white'
               : 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white hover:shadow-lg'
           }`}
@@ -135,7 +183,7 @@ export default function CreateGroupPage() {
         </span>
         <button
           onClick={form.handleSubmit(onSubmit)}
-          disabled={loading}
+          disabled={loading || fetchingStudents}
           className='bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-6 py-2 rounded-lg transition-all disabled:opacity-60'
         >
           {loading ? 'Saving...' : 'Save Group'}
