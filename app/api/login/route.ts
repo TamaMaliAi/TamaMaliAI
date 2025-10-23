@@ -9,6 +9,9 @@ export async function POST(req: Request) {
   try {
     const { username, password, role }: { username: string; password: string; role: string } = await req.json()
 
+    // Log user input (except password for security)
+    console.log('Login attempt:', { username, role })
+
     if (!username || !password || !role) {
       return NextResponse.json({ message: 'All fields are required', success: false }, { status: 400 })
     }
@@ -31,7 +34,7 @@ export async function POST(req: Request) {
     }
 
     const token = jwt.sign(
-      { userId: user.id, email: user.email, role: user.role },
+      { userId: user.id.toString(), email: user.email, role: user.role }, // convert ID to string
       process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '24h' }
     )
@@ -40,7 +43,7 @@ export async function POST(req: Request) {
       message: 'Login successful',
       success: true,
       user: {
-        id: user.id,
+        id: user.id.toString(), // convert ID to string
         email: user.email,
         name: user.name,
         role: user.role
