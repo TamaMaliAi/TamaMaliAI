@@ -14,7 +14,6 @@ import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { PlusCircle, Trash2 } from 'lucide-react'
 import { useTeacherRouteParams } from '@/app/teacher-dashboard/[teacherId]/hooks/useTeacherRouteParams'
-import Chatbot from '@/app/teacher-dashboard/[teacherId]/components/Chatbot'
 
 const optionSchema = z.object({
   text: z.string().min(1, 'Option text is required'),
@@ -309,7 +308,6 @@ function QuestionItem({
           Remove Question
         </Button>
       </CardContent>
-      <Chatbot />
     </Card>
   )
 }

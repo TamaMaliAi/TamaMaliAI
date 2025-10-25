@@ -1,13 +1,12 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect } from 'react'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useTeacherRouteParams } from '../../../hooks/useTeacherRouteParams'
-import Chatbot from '../../../components/Chatbot'
 
 const optionSchema = z.object({
   text: z.string().min(1, 'Answer is required'),
@@ -28,8 +27,22 @@ const quizSchema = z.object({
 
 type QuizFormValues = z.infer<typeof quizSchema>
 
+interface PrefillQuestion {
+  text: string
+  points: number
+  answer: string
+}
+
+interface PrefillData {
+  type: 'IDENTIFICATION'
+  title: string
+  description?: string
+  questions: PrefillQuestion[]
+}
+
 export default function IdentificationQuizForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { teacherId } = useTeacherRouteParams()
 
   const form = useForm<QuizFormValues>({
@@ -45,6 +58,31 @@ export default function IdentificationQuizForm() {
     control: form.control,
     name: 'questions'
   })
+
+  // Handle prefill from URL
+  useEffect(() => {
+    const prefillParam = searchParams.get('prefill')
+    if (prefillParam) {
+      try {
+        const prefillData: PrefillData = JSON.parse(decodeURIComponent(prefillParam))
+
+        form.setValue('title', prefillData.title)
+        form.setValue('description', prefillData.description || '')
+
+        // Clear existing questions and add prefilled ones
+        form.setValue(
+          'questions',
+          prefillData.questions.map((q) => ({
+            text: q.text,
+            points: q.points,
+            options: [{ text: q.answer, isCorrect: true as const }]
+          }))
+        )
+      } catch (error) {
+        console.error('Failed to parse prefill data:', error)
+      }
+    }
+  }, [searchParams, form])
 
   const totalPoints = form.watch('questions')?.reduce((acc, q) => acc + q.points, 0) || 0
 
@@ -79,7 +117,7 @@ export default function IdentificationQuizForm() {
           <p className='text-gray-500 text-sm mt-1'>Build questions and define answers below</p>
         </div>
         <div className='bg-gray-100 text-gray-600 px-4 py-2 rounded-xl text-sm font-medium'>
-          {fields.length} Questions • {totalPoints} Points
+          {fields.length} Questions &bull; {totalPoints} Points
         </div>
       </div>
 
@@ -181,7 +219,7 @@ export default function IdentificationQuizForm() {
         {/* FIXED FOOTER */}
         <div className='fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-lg border-t z-20 border-gray-200 py-4 px-6 flex justify-between items-center'>
           <span className='text-sm text-gray-600'>
-            {fields.length} questions • {totalPoints} points
+            {fields.length} questions &bull; {totalPoints} points
           </span>
           <button
             type='submit'
@@ -191,7 +229,6 @@ export default function IdentificationQuizForm() {
           </button>
         </div>
       </form>
-      <Chatbot />
     </div>
   )
 }

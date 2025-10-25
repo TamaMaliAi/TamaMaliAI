@@ -1,13 +1,12 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect } from 'react'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useTeacherRouteParams } from '../../../hooks/useTeacherRouteParams'
-import Chatbot from '../../../components/Chatbot'
 
 /* ----------------- 🔥 ZOD SCHEMA ----------------- */
 const optionSchema = z.object({
@@ -34,9 +33,28 @@ const quizSchema = z.object({
 
 type QuizFormValues = z.infer<typeof quizSchema>
 
+interface PrefillOption {
+  text: string
+  isCorrect: boolean
+}
+
+interface PrefillQuestion {
+  text: string
+  points: number
+  options: PrefillOption[]
+}
+
+interface PrefillData {
+  type: 'MULTIPLE_CHOICE'
+  title: string
+  description?: string
+  questions: PrefillQuestion[]
+}
+
 /* ----------------- 🔥 COMPONENT ----------------- */
 export default function MultipleChoiceQuizForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { teacherId } = useTeacherRouteParams()
 
   const form = useForm<QuizFormValues>({
@@ -65,6 +83,34 @@ export default function MultipleChoiceQuizForm() {
     control: form.control,
     name: 'questions'
   })
+
+  // Handle prefill from URL
+  useEffect(() => {
+    const prefillParam = searchParams.get('prefill')
+    if (prefillParam) {
+      try {
+        const prefillData: PrefillData = JSON.parse(decodeURIComponent(prefillParam))
+
+        form.setValue('title', prefillData.title)
+        form.setValue('description', prefillData.description || '')
+
+        // Clear existing questions and add prefilled ones
+        form.setValue(
+          'questions',
+          prefillData.questions.map((q) => ({
+            text: q.text,
+            points: q.points,
+            options: q.options.map((opt) => ({
+              text: opt.text,
+              isCorrect: opt.isCorrect
+            }))
+          }))
+        )
+      } catch (error) {
+        console.error('Failed to parse prefill data:', error)
+      }
+    }
+  }, [searchParams, form])
 
   const totalPoints = form.watch('questions')?.reduce((acc, q) => acc + q.points, 0) || 0
 
@@ -112,7 +158,7 @@ export default function MultipleChoiceQuizForm() {
           <p className='text-gray-500 text-sm mt-1'>Build questions, add options, and select correct answers</p>
         </div>
         <div className='bg-gray-100 text-gray-600 px-4 py-2 rounded-xl text-sm font-medium'>
-          {questionFields.length} Questions • {totalPoints} Points
+          {questionFields.length} Questions &bull; {totalPoints} Points
         </div>
       </div>
 
@@ -261,7 +307,7 @@ export default function MultipleChoiceQuizForm() {
         {/* FIXED FOOTER */}
         <div className='fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-lg border-t z-20 border-gray-200 py-4 px-6 flex justify-between items-center'>
           <span className='text-sm text-gray-600'>
-            {questionFields.length} questions • {totalPoints} points
+            {questionFields.length} questions &bull; {totalPoints} points
           </span>
           <button
             type='submit'
@@ -271,7 +317,6 @@ export default function MultipleChoiceQuizForm() {
           </button>
         </div>
       </form>
-      <Chatbot />
     </div>
   )
 }

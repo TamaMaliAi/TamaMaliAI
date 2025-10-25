@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { BookOpen, HelpCircle } from 'lucide-react'
 import { useTeacherRouteParams } from '../../hooks/useTeacherRouteParams'
+import Chatbot from '../../components/Chatbot'
 
 export default function QuizTypeSelection() {
   const { teacherId } = useTeacherRouteParams()
@@ -51,6 +52,7 @@ export default function QuizTypeSelection() {
           )
         })}
       </div>
+      <Chatbot />
     </div>
   )
 }
