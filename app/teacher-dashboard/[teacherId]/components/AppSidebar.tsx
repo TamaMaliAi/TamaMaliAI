@@ -83,7 +83,7 @@ export function AppSidebar() {
         title: 'Sign-out',
         url: '/sign-out',
         icon: LogOutIcon,
-        color: 'text-slate-600',
+        color: 'text-orange-600',
         bgHover: 'hover:bg-slate-50',
         activeColor: 'text-slate-700',
         activeBg: 'bg-slate-100',

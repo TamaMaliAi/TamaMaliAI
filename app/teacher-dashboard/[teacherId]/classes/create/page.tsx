@@ -169,7 +169,7 @@ export default function CreateGroupPage() {
           className={`w-full py-3 rounded-xl font-medium shadow-md transition-all ${
             loading || fetchingStudents
               ? 'bg-gray-400 cursor-not-allowed text-white'
-              : 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white hover:shadow-lg'
+              : 'bg-gradient-to-r from-orange-500 to-red-500 text-white hover:shadow-lg'
           }`}
         >
           {loading ? 'Creating Group...' : 'Create Group'}
@@ -184,7 +184,7 @@ export default function CreateGroupPage() {
         <button
           onClick={form.handleSubmit(onSubmit)}
           disabled={loading || fetchingStudents}
-          className='bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-6 py-2 rounded-lg transition-all disabled:opacity-60'
+          className='bg-orange-600 hover:bg-orange-700 text-white font-medium px-6 py-2 rounded-lg transition-all disabled:opacity-60'
         >
           {loading ? 'Saving...' : 'Save Group'}
         </button>
