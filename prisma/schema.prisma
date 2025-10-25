@@ -7,6 +7,127 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  email           String           @unique
+  password        String
+  name            String
+  role            UserRole
+  deleted         Boolean          @default(false)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  id              Int              @id @default(autoincrement())
+  groups          Group[]          @relation("TeacherGroups")
+  createdQuizzes  Quiz[]           @relation("TeacherQuizzes")
+  assignedQuizzes QuizAssignment[]
+  attempts        QuizAttempt[]
+  studentGroups   StudentGroup[]
+}
+
+model Group {
+  id          Int              @id @default(autoincrement())
+  name        String
+  deleted     Boolean          @default(false)
+  teacherId   Int
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  teacher     User             @relation("TeacherGroups", fields: [teacherId], references: [id])
+  assignments QuizAssignment[]
+  students    StudentGroup[]
+}
+
+model StudentGroup {
+  id        Int   @id @default(autoincrement())
+  studentId Int
+  groupId   Int
+  group     Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  student   User  @relation(fields: [studentId], references: [id])
+}
+
+model Quiz {
+  title       String
+  description String?
+  subject     String?
+  timeLimit   Int?
+  totalPoints Int
+  deadline    DateTime?
+  deleted     Boolean          @default(false)
+  status      QuizStatus       @default(ACTIVE)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  type        QuizType
+  id          Int              @id @default(autoincrement())
+  teacherId   Int
+  questions   Question[]
+  teacher     User             @relation("TeacherQuizzes", fields: [teacherId], references: [id])
+  assignments QuizAssignment[]
+  attempts    QuizAttempt[]
+}
+
+model QuizAssignment {
+  deleted    Boolean  @default(false)
+  assignedAt DateTime @default(now())
+  groupId    Int?
+  id         Int      @id @default(autoincrement())
+  quizId     Int
+  studentId  Int?
+  group      Group?   @relation(fields: [groupId], references: [id])
+  quiz       Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  student    User?    @relation(fields: [studentId], references: [id])
+}
+
+model Question {
+  text      String
+  type      QuestionType
+  order     Int
+  points    Int
+  deleted   Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  id        Int              @id @default(autoincrement())
+  quizId    Int
+  quiz      Quiz             @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  options   QuestionOption[]
+  answers   StudentAnswer[]
+}
+
+model QuestionOption {
+  text           String
+  isCorrect      Boolean         @default(false)
+  deleted        Boolean         @default(false)
+  id             Int             @id @default(autoincrement())
+  questionId     Int
+  question       Question        @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  studentAnswers StudentAnswer[]
+}
+
+model QuizAttempt {
+  score       Int
+  submittedAt DateTime        @default(now())
+  attemptNo   Int
+  timeSpent   Int      @default(0) // Add this line - time in seconds
+  deleted     Boolean         @default(false)
+  id          Int             @id @default(autoincrement())
+  studentId   Int
+  quizId      Int
+  quiz        Quiz            @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  student     User            @relation(fields: [studentId], references: [id])
+  answers     StudentAnswer[]
+}
+
+model StudentAnswer {
+  textAnswer       String?
+  isCorrect        Boolean?
+  deleted          Boolean         @default(false)
+  listAnswer       Json?
+  id               Int             @id @default(autoincrement())
+  questionId       Int
+  attemptId        Int
+  selectedOptionId Int?
+  attempt          QuizAttempt     @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question         Question        @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  selectedOption   QuestionOption? @relation(fields: [selectedOptionId], references: [id])
+}
+
 enum UserRole {
   TEACHER
   STUDENT
@@ -19,154 +140,12 @@ enum QuizType {
 }
 
 enum QuestionType {
-  MULTIPLE_CHOICE
   IDENTIFICATION
+  MULTIPLE_CHOICE
   ENUMERATION
 }
 
 enum QuizStatus {
   ACTIVE
   CLOSED
-}
-
-model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  password  String
-  name      String
-  role      UserRole
-  deleted   Boolean  @default(false)
-
-  createdQuizzes Quiz[]           @relation("TeacherQuizzes")
-  groups        Group[]           @relation("TeacherGroups")
-  studentGroups StudentGroup[]
-  assignedQuizzes QuizAssignment[]
-  attempts       QuizAttempt[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Group {
-  id        Int     @id @default(autoincrement())
-  name      String
-  deleted   Boolean @default(false)
-
-  teacher   User    @relation("TeacherGroups", fields: [teacherId], references: [id])
-  teacherId Int
-
-  students  StudentGroup[]
-  assignments QuizAssignment[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model StudentGroup {
-  id        Int  @id @default(autoincrement())
-  student   User @relation(fields: [studentId], references: [id])
-  studentId Int
-  group     Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  groupId   Int
-}
-
-model Quiz {
-  id          Int        @id @default(autoincrement())
-  title       String
-  description String?
-  subject     String?
-  type        QuizType
-  timeLimit   Int?        // minutes
-  totalPoints Int
-  deadline    DateTime?
-  deleted     Boolean     @default(false)
-
-  status      QuizStatus  @default(ACTIVE)
-
-  teacher     User        @relation("TeacherQuizzes", fields: [teacherId], references: [id])
-  teacherId   Int
-  questions   Question[]
-  assignments QuizAssignment[]
-  attempts    QuizAttempt[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model QuizAssignment {
-  id        Int @id @default(autoincrement())
-
-  quiz      Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
-  quizId    Int
-
-  // Assignment can be for a student OR a group
-  student   User?  @relation(fields: [studentId], references: [id])
-  studentId Int?
-  group     Group? @relation(fields: [groupId], references: [id])
-  groupId   Int?
-
-  deleted   Boolean @default(false)
-  assignedAt DateTime @default(now())
-}
-
-model Question {
-  id        Int          @id @default(autoincrement())
-  text      String
-  type      QuestionType
-  order     Int
-  points    Int
-  deleted   Boolean      @default(false)
-
-  options   QuestionOption[]
-  quiz      Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
-  quizId    Int
-  answers   StudentAnswer[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model QuestionOption {
-  id          Int      @id @default(autoincrement())
-  text        String
-  isCorrect   Boolean  @default(false)
-  deleted     Boolean  @default(false)
-
-  question    Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  questionId  Int
-
-  studentAnswers StudentAnswer[]
-}
-
-model QuizAttempt {
-  id          Int      @id @default(autoincrement())
-  student     User     @relation(fields: [studentId], references: [id])
-  studentId   Int
-  quiz        Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
-  quizId      Int
-  score       Int
-  submittedAt DateTime @default(now())
-  attemptNo   Int
-  deleted     Boolean  @default(false)
-
-  answers     StudentAnswer[]
-}
-
-model StudentAnswer {
-  id          Int          @id @default(autoincrement())
-  question    Question     @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  questionId  Int
-  attempt     QuizAttempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
-  attemptId   Int
-
-  // Identification & Enumeration
-  textAnswer  String?
-  listAnswer  Json? // For ENUMERATION (list of items)
-
-  // Multiple Choice
-  selectedOptionId Int?
-  selectedOption   QuestionOption? @relation(fields: [selectedOptionId], references: [id])
-
-  isCorrect   Boolean?
-  deleted     Boolean  @default(false)
 }

@@ -33,7 +33,7 @@ export default function TeacherDashboardHome() {
     }))
 
     const totalStudents = mockUsers.length
-    const now = moment()
+    // const now = moment()
     const oneWeekAgo = moment().subtract(7, 'days')
     const twoWeeksAgo = moment().subtract(14, 'days')
 

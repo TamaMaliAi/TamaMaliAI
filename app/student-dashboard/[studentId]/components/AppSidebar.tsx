@@ -17,23 +17,13 @@ import {
 import { useStudentRouteParams } from '../hooks/useStudentRouteParams'
 
 export function AppSidebar() {
-  const [activeItem, setActiveItem] = useState('home')
+  const [activeItem, setActiveItem] = useState('calendar')
   const pathname = usePathname()
   const { studentId } = useStudentRouteParams()
 
   const items = useMemo(
     () => [
-      {
-        id: 'home',
-        title: 'Home',
-        url: `/student-dashboard/${studentId}`,
-        icon: Home,
-        color: 'text-orange-600',
-        bgHover: 'hover:bg-orange-50',
-        activeColor: 'text-orange-700',
-        activeBg: 'bg-orange-100',
-        borderColor: 'border-orange-300'
-      },
+      
       
       {
         id: 'calendar',

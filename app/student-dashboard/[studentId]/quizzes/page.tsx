@@ -3,10 +3,10 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { useStudentRouteParams } from '../hooks/useStudentRouteParams'
+import { QuizDetailsModal } from '../components/QuizdetailsModal'
 
 type Quiz = {
   id: number
@@ -17,9 +17,35 @@ type Quiz = {
   type: 'MULTIPLE_CHOICE' | 'IDENTIFICATION'
 }
 
+type QuizDetails = Quiz & {
+  teacher?: {
+    name: string
+    email?: string
+  }
+}
+
+// Add this new type for the API response
+type ApiAssignment = {
+  quiz: {
+    id: number
+    title: string
+    description?: string | null
+    subject?: string | null
+    totalPoints: number
+    type: 'MULTIPLE_CHOICE' | 'IDENTIFICATION'
+    teacher?: {
+      name: string
+      email?: string
+    }
+  }
+}
+
 export default function QuizzesPage() {
   const [quizzes, setQuizzes] = useState<Quiz[]>([])
   const [loading, setLoading] = useState(true)
+  const [selectedQuiz, setSelectedQuiz] = useState<QuizDetails | null>(null)
+  const [modalOpen, setModalOpen] = useState(false)
+  const [loadingQuizDetails, setLoadingQuizDetails] = useState(false)
   const router = useRouter()
   const { studentId } = useStudentRouteParams()
 
@@ -28,11 +54,29 @@ export default function QuizzesPage() {
       if (!studentId) return
 
       try {
-        const res = await fetch(`/api/student/quiz?studentId=${studentId}`)
+        const res = await fetch(`/api/student/assignment?studentId=${studentId}`, {
+          cache: 'no-store',
+        })
+
+        if (!res.ok) {
+          console.error('API returned error status:', res.status)
+          setLoading(false)
+          return
+        }
+
         const data = await res.json()
 
         if (data.success) {
-          setQuizzes(data.quizzes)
+          // Fix line 55 - Replace 'any' with 'ApiAssignment'
+          const mappedQuizzes = data.assignments.map((a: ApiAssignment) => ({
+            id: a.quiz.id,
+            title: a.quiz.title,
+            description: a.quiz.description,
+            subject: a.quiz.subject,
+            totalPoints: a.quiz.totalPoints,
+            type: a.quiz.type,
+          }))
+          setQuizzes(mappedQuizzes)
         } else {
           console.error('Error fetching quizzes:', data.message)
         }
@@ -46,8 +90,78 @@ export default function QuizzesPage() {
     fetchQuizzes()
   }, [studentId])
 
-  const handleQuizClick = (quizId: number) => {
-    router.push(`/student-dashboard/${studentId}/quizzes/confirm/${quizId}`)
+  const handleQuizClick = async (quizId: number) => {
+    setLoadingQuizDetails(true)
+    setModalOpen(true)
+
+    try {
+      const assignment = quizzes.find(q => q.id === quizId)
+      
+      if (!assignment) {
+        console.error('Quiz not found in local data')
+        setModalOpen(false)
+        setLoadingQuizDetails(false)
+        return
+      }
+
+      const url = `/api/student/assignment?studentId=${studentId}`
+      console.log('Fetching assignments from:', url)
+      
+      const res = await fetch(url, {
+        cache: 'no-store',
+      })
+
+      console.log('Response status:', res.status)
+      
+      const data = await res.json()
+      console.log('Response data:', data)
+
+      if (!res.ok) {
+        console.error('Failed to fetch quiz details:', data.message || 'Unknown error')
+        setModalOpen(false)
+        return
+      }
+
+      if (data.success && data.assignments) {
+        // Fix line 110 - Replace 'any' with 'ApiAssignment'
+        const quizAssignment = data.assignments.find((a: ApiAssignment) => a.quiz.id === quizId)
+        
+        if (quizAssignment && quizAssignment.quiz) {
+          setSelectedQuiz({
+            id: quizAssignment.quiz.id,
+            title: quizAssignment.quiz.title,
+            description: quizAssignment.quiz.description,
+            subject: quizAssignment.quiz.subject,
+            totalPoints: quizAssignment.quiz.totalPoints,
+            type: quizAssignment.quiz.type,
+            teacher: quizAssignment.quiz.teacher,
+          })
+        } else {
+          console.error('Quiz not found in assignments')
+          setModalOpen(false)
+        }
+      } else {
+        console.error('Quiz data not found in response')
+        setModalOpen(false)
+      }
+    } catch (err) {
+      console.error('Error fetching quiz details:', err)
+      setModalOpen(false)
+    } finally {
+      setLoadingQuizDetails(false)
+    }
+  }
+
+  const handleStartQuiz = () => {
+    if (selectedQuiz) {
+      const quizType = selectedQuiz.type === 'MULTIPLE_CHOICE' ? 'multiple-choice' : 'identification'
+      router.push(`/student-dashboard/${studentId}/quizzes/answer/${quizType}/${selectedQuiz.id}`)
+    }
+  }
+
+  const handleCloseModal = () => {
+    setModalOpen(false)
+    setSelectedQuiz(null)
   }
 
   const renderQuizzes = (type: 'MULTIPLE_CHOICE' | 'IDENTIFICATION') => {
@@ -103,6 +217,16 @@ export default function QuizzesPage() {
     )
   }
 
+  const handleViewResult = (submissionId: number) => {
+    if (studentId && selectedQuiz) {
+      const resultPath = selectedQuiz.type === 'IDENTIFICATION' 
+        ? `/student-dashboard/${studentId}/quizzes/result/identification/${submissionId}`
+        : `/student-dashboard/${studentId}/quizzes/result/multiple-choice/${submissionId}`
+      router.push(resultPath)
+      setModalOpen(false)
+    }
+  }
+
   return (
     <div className='p-6'>
       <div className='flex items-center justify-between mb-8'>
@@ -120,6 +244,16 @@ export default function QuizzesPage() {
         <TabsContent value='MULTIPLE_CHOICE'>{renderQuizzes('MULTIPLE_CHOICE')}</TabsContent>
         <TabsContent value='IDENTIFICATION'>{renderQuizzes('IDENTIFICATION')}</TabsContent>
       </Tabs>
+
+      <QuizDetailsModal
+        isOpen={modalOpen}
+        isLoading={loadingQuizDetails}
+        quiz={selectedQuiz}
+        studentId={studentId ? String(studentId) : null}
+        onClose={handleCloseModal}
+        onStartQuiz={handleStartQuiz}
+        onViewResult={handleViewResult}
+      />
     </div>
   )
 }
