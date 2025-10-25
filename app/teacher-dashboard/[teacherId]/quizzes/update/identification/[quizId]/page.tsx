@@ -13,6 +13,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Trash2, PlusCircle } from 'lucide-react'
 import { useTeacherRouteParams } from '@/app/teacher-dashboard/[teacherId]/hooks/useTeacherRouteParams'
+import Chatbot from '@/app/teacher-dashboard/[teacherId]/components/Chatbot'
 
 const questionSchema = z.object({
   text: z.string().min(1, 'Question text is required'),
@@ -263,6 +264,7 @@ function QuestionItem({
           <Trash2 className='h-4 w-4 mr-1' />
           Remove Question
         </Button>
+        <Chatbot />
       </CardContent>
     </Card>
   )
