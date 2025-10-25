@@ -3,20 +3,34 @@ import { QUIZ_GENERATION_PROMPT } from '@/app/constants/prompts'
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
 
+// Define proper types for conversation history
+interface ConversationMessage {
+  role: 'user' | 'model'
+  parts: Array<{ text: string }>
+}
+
+// In-memory conversation store (keyed by sessionId)
+const conversations = new Map<string, ConversationMessage[]>()
+
 export async function POST(req: Request) {
   try {
-    const { message } = await req.json()
+    const { message, sessionId } = await req.json()
 
     if (!message) {
       return new Response('Message is required', { status: 400 })
+    }
+
+    if (!sessionId) {
+      return new Response('Session ID is required', { status: 400 })
     }
 
     const model = genAI.getGenerativeModel({
       model: 'gemini-2.0-flash-exp'
     })
 
-    const chat = model.startChat({
-      history: [
+    // Initialize conversation history if it doesn't exist
+    if (!conversations.has(sessionId)) {
+      conversations.set(sessionId, [
         {
           role: 'user',
           parts: [{ text: QUIZ_GENERATION_PROMPT }]
@@ -29,7 +43,20 @@ export async function POST(req: Request) {
             }
           ]
         }
-      ]
+      ])
+    }
+
+    const history = conversations.get(sessionId)!
+
+    // Add user message to history
+    history.push({
+      role: 'user',
+      parts: [{ text: message }]
+    })
+
+    // Start chat with full history
+    const chat = model.startChat({
+      history: history.slice(0, -1) // Exclude the last message we just added
     })
 
     const encoder = new TextEncoder()
@@ -44,6 +71,12 @@ export async function POST(req: Request) {
             fullResponse += chunk.text()
           }
 
+          // Add assistant response to history
+          history.push({
+            role: 'model',
+            parts: [{ text: fullResponse }]
+          })
+
           // Stream character by character for smooth display
           for (let i = 0; i < fullResponse.length; i++) {
             try {
@@ -51,7 +84,6 @@ export async function POST(req: Request) {
             } catch {
               break
             }
-            // Small delay between characters for smooth streaming effect
             await new Promise((resolve) => setTimeout(resolve, 10))
           }
 

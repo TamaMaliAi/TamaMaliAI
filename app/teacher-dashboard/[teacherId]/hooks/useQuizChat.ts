@@ -1,5 +1,6 @@
 'use client'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
+import { v4 as uuidv4 } from 'uuid'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -33,7 +34,18 @@ export function useQuizChat() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
+  const [sessionId, setSessionId] = useState<string | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
+
+  // Initialize or retrieve sessionId from localStorage
+  useEffect(() => {
+    let id = localStorage.getItem('quizChatSessionId')
+    if (!id) {
+      id = uuidv4()
+      localStorage.setItem('quizChatSessionId', id)
+    }
+    setSessionId(id)
+  }, [])
 
   const stopGeneration = () => {
     if (abortControllerRef.current) {
@@ -46,11 +58,15 @@ export function useQuizChat() {
   const clearChat = () => {
     if (!isGenerating) {
       setMessages([])
+      // Generate new session ID to start fresh conversation
+      const newSessionId = uuidv4()
+      localStorage.setItem('quizChatSessionId', newSessionId)
+      setSessionId(newSessionId)
     }
   }
 
   const sendMessage = async () => {
-    if (!input.trim() || isGenerating) return
+    if (!input.trim() || isGenerating || !sessionId) return
 
     const userMessage: Message = { role: 'user', text: input }
     setMessages((prev) => [...prev, userMessage])
@@ -65,7 +81,7 @@ export function useQuizChat() {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userInput }),
+        body: JSON.stringify({ message: userInput, sessionId }),
         signal: abortControllerRef.current.signal
       })
 
