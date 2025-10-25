@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { useTeacherRouteParams } from '../../../hooks/useTeacherRouteParams'
+import Chatbot from '../../../components/Chatbot'
 
 /* ----------------- 🔥 ZOD SCHEMA ----------------- */
 const optionSchema = z.object({
@@ -258,7 +259,7 @@ export default function MultipleChoiceQuizForm() {
         </motion.button>
 
         {/* FIXED FOOTER */}
-        <div className='fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-lg border-t border-gray-200 py-4 px-6 flex justify-between items-center'>
+        <div className='fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-lg border-t z-20 border-gray-200 py-4 px-6 flex justify-between items-center'>
           <span className='text-sm text-gray-600'>
             {questionFields.length} questions • {totalPoints} points
           </span>
@@ -270,6 +271,7 @@ export default function MultipleChoiceQuizForm() {
           </button>
         </div>
       </form>
+      <Chatbot />
     </div>
   )
 }
