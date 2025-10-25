@@ -7,7 +7,6 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useTeacherRouteParams } from '../../../hooks/useTeacherRouteParams'
-import Chatbot from '../../../components/Chatbot'
 
 /* ----------------- 🔥 ZOD SCHEMA ----------------- */
 const optionSchema = z.object({
@@ -318,7 +317,6 @@ export default function MultipleChoiceQuizForm() {
           </button>
         </div>
       </form>
-      <Chatbot />
     </div>
   )
 }

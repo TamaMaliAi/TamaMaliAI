@@ -7,7 +7,6 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useTeacherRouteParams } from '../../../hooks/useTeacherRouteParams'
-import Chatbot from '../../../components/Chatbot'
 
 const optionSchema = z.object({
   text: z.string().min(1, 'Answer is required'),
@@ -230,7 +229,6 @@ export default function IdentificationQuizForm() {
           </button>
         </div>
       </form>
-      <Chatbot />
     </div>
   )
 }
