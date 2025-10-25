@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { QUIZ_GENERATION_PROMPT } from '@/app/constants/prompts'
 
@@ -9,11 +8,11 @@ export async function POST(req: Request) {
     const { message } = await req.json()
 
     if (!message) {
-      return NextResponse.json({ success: false, error: 'Message is required' }, { status: 400 })
+      return new Response('Message is required', { status: 400 })
     }
 
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-pro'
+      model: 'gemini-2.0-flash-exp'
     })
 
     const chat = model.startChat({
@@ -33,34 +32,58 @@ export async function POST(req: Request) {
       ]
     })
 
-    const result = await chat.sendMessage(message)
-    const response = result.response.text()
+    const encoder = new TextEncoder()
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          const result = await chat.sendMessageStream(message)
+          let fullResponse = ''
 
-    // Check if response contains JSON quiz data
-    const jsonMatch = response.match(/```json\n([\s\S]*?)\n```/)
-    let quizData = null
+          // Collect full response first
+          for await (const chunk of result.stream) {
+            fullResponse += chunk.text()
+          }
 
-    if (jsonMatch) {
-      try {
-        quizData = JSON.parse(jsonMatch[1])
-      } catch (e) {
-        console.error('Failed to parse quiz JSON:', e)
+          // Stream character by character for smooth display
+          for (let i = 0; i < fullResponse.length; i++) {
+            try {
+              controller.enqueue(encoder.encode(fullResponse[i]))
+            } catch {
+              break
+            }
+            // Small delay between characters for smooth streaming effect
+            await new Promise((resolve) => setTimeout(resolve, 10))
+          }
+
+          // After streaming is complete, check for quiz data
+          const jsonMatch = fullResponse.match(/```json\n([\s\S]*?)\n```/)
+          if (jsonMatch) {
+            try {
+              const quizData = JSON.parse(jsonMatch[1])
+              controller.enqueue(encoder.encode('__QUIZ_DATA__' + JSON.stringify(quizData)))
+            } catch (e) {
+              console.error('Failed to parse quiz JSON:', e)
+            }
+          }
+
+          controller.close()
+        } catch (error) {
+          console.error('Streaming error:', error)
+          controller.enqueue(encoder.encode('Sorry, something went wrong while generating the response.'))
+          controller.close()
+        }
       }
-    }
+    })
 
-    return NextResponse.json({
-      success: true,
-      response,
-      quizData
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Cache-Control': 'no-cache',
+        Connection: 'keep-alive'
+      }
     })
   } catch (error) {
     console.error('Chat API error:', error)
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to generate response'
-      },
-      { status: 500 }
-    )
+    return new Response('Failed to generate response', { status: 500 })
   }
 }
