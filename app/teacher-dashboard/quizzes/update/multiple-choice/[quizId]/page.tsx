@@ -190,7 +190,9 @@ export default function UpdateMultipleChoiceQuizForm() {
                 <span className='text-sm text-muted-foreground'>
                   {questionFields.length} questions · {totalPoints} points
                 </span>
-                <Button type='submit'>Update Quiz</Button>
+                <Button type='submit' className='bg-orange-600 hover:bg-orange-700'>
+                  Update Quiz
+                </Button>{' '}
               </div>
             </form>
           </Form>

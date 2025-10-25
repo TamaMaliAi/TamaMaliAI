@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { useForm, useFieldArray, Control } from 'react-hook-form'
+import { useForm, useFieldArray } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -174,7 +174,7 @@ export default function IdentificationQuizForm() {
               options: [{ text: '', isCorrect: true }]
             })
           }
-          className='w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white py-3 rounded-xl font-medium shadow-md hover:shadow-lg transition-all'
+          className='cursor-pointer w-full bg-gradient-to-r from-orange-500 to-red-500 text-white py-3 rounded-xl font-medium shadow-md hover:shadow-lg transition-all'
         >
           + Add New Question
         </motion.button>
@@ -186,7 +186,7 @@ export default function IdentificationQuizForm() {
           </span>
           <button
             type='submit'
-            className='bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-6 py-2 rounded-lg transition-all'
+            className='bg-orange-600 hover:bg-orange-700 text-white font-medium px-6 py-2 rounded-lg transition-all cursor-pointer'
           >
             Save Quiz
           </button>
