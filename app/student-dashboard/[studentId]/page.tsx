@@ -8,7 +8,7 @@ import { motion } from 'framer-motion'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import { ArrowUpRight, Users, CalendarDays, UserPlus } from 'lucide-react'
 
-export default function TeacherDashboardHome() {
+export default function StudentDashboardHome() {
   const mockUsers = useMemo(
     () =>
       rawUsers.map((user) => ({

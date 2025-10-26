@@ -86,7 +86,7 @@ export default function AuthPage() {
           if (user.role === 'TEACHER') {
             window.location.href = `/teacher-dashboard/${user.id}`
           } else {
-            window.location.href = `/student-dashboard/${user.id}`
+            window.location.href = `/student-dashboard/${user.id}/quizzes`
           }
         } else {
           showMessage(data.message)
