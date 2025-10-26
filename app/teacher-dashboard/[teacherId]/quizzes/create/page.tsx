@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { BookOpen, HelpCircle } from 'lucide-react'
 import { useTeacherRouteParams } from '../../hooks/useTeacherRouteParams'
+import Chatbot from '../../components/Chatbot'
 
 export default function QuizTypeSelection() {
   const { teacherId } = useTeacherRouteParams()
@@ -23,7 +24,7 @@ export default function QuizTypeSelection() {
     }
   ]
   return (
-    <div className='min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100 p-6'>
+    <div className='flex flex-col items-center justify-center p-6'>
       <div className='mb-12 text-center'>
         <h1 className='text-3xl md:text-4xl font-bold tracking-tight text-gray-800'>Select Quiz Type</h1>
         <p className='text-gray-500 mt-2 text-base md:text-lg'>Choose the type of quiz you want to create</p>
@@ -51,6 +52,7 @@ export default function QuizTypeSelection() {
           )
         })}
       </div>
+      <Chatbot />
     </div>
   )
 }

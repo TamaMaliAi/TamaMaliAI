@@ -69,7 +69,7 @@ export default function InfoPanel({
         <Image
           src={imageUrl}
           alt={imageAlt}
-          width={500}   // pick a reasonable width
+          width={500}  
           height={500}  // pick a reasonable height
           className="w-full h-auto object-contain"
           priority

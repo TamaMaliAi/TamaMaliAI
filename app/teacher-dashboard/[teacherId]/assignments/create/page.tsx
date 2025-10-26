@@ -6,13 +6,12 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { useRouter } from 'next/navigation'
 import { useTeacherRouteParams } from '../../hooks/useTeacherRouteParams'
-import { mockUsers } from '../../hooks/students'
 import { CheckCircle, Users, User, BookOpen, ArrowLeft } from 'lucide-react'
 
 /* ----------------- 🔹 ZOD SCHEMA ----------------- */
 const assignSchema = z
   .object({
-    quizId: z.number(),
+    quizId: z.number().min(1, 'Please select a quiz'),
     assignTo: z.enum(['STUDENT', 'GROUP']),
     studentId: z.number().optional(),
     groupId: z.number().optional()
@@ -23,8 +22,28 @@ const assignSchema = z
       if (data.assignTo === 'GROUP') return data.groupId && data.groupId > 0
       return false
     },
-    { message: 'Please select a student or group', path: ['studentId'] }
+    {
+      message: 'Please select a student or group',
+      path: ['studentId'] // This will be overridden by checking assignTo
+    }
   )
+  .superRefine((data, ctx) => {
+    // Add specific errors for each field
+    if (data.assignTo === 'STUDENT' && (!data.studentId || data.studentId <= 0)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Please select a student',
+        path: ['studentId']
+      })
+    }
+    if (data.assignTo === 'GROUP' && (!data.groupId || data.groupId <= 0)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Please select a group',
+        path: ['groupId']
+      })
+    }
+  })
 
 type AssignFormValues = z.infer<typeof assignSchema>
 
@@ -34,6 +53,7 @@ type Group = { id: number; name: string }
 type Student = { id: number; name: string }
 type QuizResponse = { success: boolean; quizzes: Quiz[] }
 type GroupResponse = { success: boolean; groups: Group[] }
+type StudentResponse = { students: Student[] }
 type AssignmentResponse = { success: boolean; message: string }
 
 /* ----------------- 🔹 COMPONENT ----------------- */
@@ -48,7 +68,11 @@ export default function AssignQuizPage() {
 
   const form = useForm<AssignFormValues>({
     resolver: zodResolver(assignSchema),
-    defaultValues: { assignTo: 'STUDENT' }
+    defaultValues: {
+      assignTo: 'STUDENT',
+      studentId: undefined,
+      groupId: undefined
+    }
   })
 
   const assignTo = form.watch('assignTo')
@@ -67,13 +91,26 @@ export default function AssignQuizPage() {
         const groupData = (await groupRes.json()) as GroupResponse
         if (groupData.success) setGroups(groupData.groups)
 
-        setStudents(mockUsers)
+        const studentRes = await fetch('/api/students')
+        const studentData = (await studentRes.json()) as StudentResponse
+        if (studentData.students) setStudents(studentData.students)
       } catch (err) {
         console.error('Error fetching data:', err)
       }
     }
     fetchData()
   }, [teacherId])
+
+  // Clear the unused field when switching assignment type
+  useEffect(() => {
+    if (assignTo === 'STUDENT') {
+      form.setValue('groupId', undefined)
+      form.clearErrors('groupId')
+    } else if (assignTo === 'GROUP') {
+      form.setValue('studentId', undefined)
+      form.clearErrors('studentId')
+    }
+  }, [assignTo, form])
 
   /* ----------------- 🚀 SUBMIT ----------------- */
   const onSubmit = async (data: AssignFormValues) => {
@@ -91,7 +128,7 @@ export default function AssignQuizPage() {
       const result = (await res.json()) as AssignmentResponse
       if (result.success) {
         setShowSuccess(true)
-        setTimeout(() => router.push(`/teacher-dashboard/${teacherId}/quizzes`), 1500)
+        setTimeout(() => router.push(`/teacher-dashboard/${teacherId}/assignments`), 1500)
       } else alert(result.message || 'Failed to assign quiz')
     } catch {
       alert('Something went wrong')
@@ -141,6 +178,9 @@ export default function AssignQuizPage() {
               </select>
               <div className='absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400'>▼</div>
             </div>
+            {form.formState.errors.quizId && (
+              <p className='text-sm text-red-500'>{form.formState.errors.quizId.message}</p>
+            )}
           </div>
 
           {/* Assign To */}
@@ -204,6 +244,9 @@ export default function AssignQuizPage() {
                     </option>
                   ))}
                 </select>
+                {form.formState.errors.studentId && (
+                  <p className='text-sm text-red-500'>{form.formState.errors.studentId.message}</p>
+                )}
               </motion.div>
             )}
 
@@ -228,6 +271,9 @@ export default function AssignQuizPage() {
                     </option>
                   ))}
                 </select>
+                {form.formState.errors.groupId && (
+                  <p className='text-sm text-red-500'>{form.formState.errors.groupId.message}</p>
+                )}
               </motion.div>
             )}
           </AnimatePresence>
