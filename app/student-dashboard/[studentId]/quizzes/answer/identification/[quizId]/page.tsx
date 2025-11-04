@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Clock, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { Clock, AlertCircle } from 'lucide-react'
 import { useStudentRouteParams } from '../../../../hooks/useStudentRouteParams'
 
 type Question = {
@@ -172,6 +172,7 @@ export default function AnswerIdentificationQuizPage() {
   }
 
   const answeredCount = answers.filter((answer) => answer.textAnswer?.trim()).length
+  const isQuizComplete = answeredCount === quiz?.questions.length
 
   if (loading) {
     return (
@@ -190,7 +191,7 @@ export default function AnswerIdentificationQuizPage() {
           <CardContent className='flex flex-col items-center justify-center py-12'>
             <AlertCircle className='h-12 w-12 text-red-500 mb-4' />
             <p className='text-lg font-semibold'>Quiz not found</p>
-            <Button className='mt-4' onClick={() => router.back()}>
+            <Button className='mt-4 cursor-pointer' onClick={() => router.back()}>
               Go Back
             </Button>
           </CardContent>
@@ -239,7 +240,17 @@ export default function AnswerIdentificationQuizPage() {
                 {formatTime(timeElapsed)}
               </div>
             </div>
-            <Button onClick={handleSubmit} disabled={submitting || answeredCount < quiz.questions.length}>
+            <Button 
+              onClick={(e) => {
+                if (submitting || !isQuizComplete) {
+                  e.preventDefault()
+                  return
+                }
+                handleSubmit()
+              }}
+              className={submitting || !isQuizComplete ? 'opacity-50' : ''}
+              style={{ cursor: isQuizComplete && !submitting ? 'pointer' : 'not-allowed' }}
+            >
               {submitting ? 'Submitting...' : 'Submit Quiz'}
             </Button>
           </div>
@@ -258,12 +269,9 @@ export default function AnswerIdentificationQuizPage() {
           .sort((a, b) => a.order - b.order)
           .map((question, index) => {
             const answer = answers.find(a => a.questionId === question.id)
-            const isAnswered = !!answer?.textAnswer?.trim()
 
             return (
-              <Card key={question.id} className='rounded-2xl shadow-sm border-2 transition-all' style={{
-                borderColor: isAnswered ? '#22c55e' : '#e5e7eb'
-              }}>
+              <Card key={question.id} className='rounded-2xl shadow-sm border-2 border-gray-200 transition-all'>
                 <CardHeader>
                   <div className='flex justify-between items-start'>
                     <div className='flex-1'>
@@ -280,9 +288,6 @@ export default function AnswerIdentificationQuizPage() {
                       </div>
                       <p className='text-gray-900 font-normal'>{question.text}</p>
                     </div>
-                    {isAnswered && (
-                      <CheckCircle2 className='h-5 w-5 text-green-500 flex-shrink-0' />
-                    )}
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -313,9 +318,8 @@ export default function AnswerIdentificationQuizPage() {
         <CardContent className='py-4'>
           <div className='flex justify-between items-center'>
             <div className='text-sm'>
-              {answeredCount === quiz.questions.length ? (
-                <span className='text-green-600 font-medium flex items-center gap-2'>
-                  <CheckCircle2 className='h-4 w-4' />
+              {isQuizComplete ? (
+                <span className='text-green-600 font-medium'>
                   All questions answered!
                 </span>
               ) : (
@@ -325,9 +329,16 @@ export default function AnswerIdentificationQuizPage() {
               )}
             </div>
             <Button 
-              onClick={handleSubmit} 
-              disabled={submitting || answeredCount < quiz.questions.length} 
+              onClick={(e) => {
+                if (submitting || !isQuizComplete) {
+                  e.preventDefault()
+                  return
+                }
+                handleSubmit()
+              }}
               size='lg'
+              className={submitting || !isQuizComplete ? 'opacity-50' : ''}
+              style={{ cursor: isQuizComplete && !submitting ? 'pointer' : 'not-allowed' }}
             >
               {submitting ? 'Submitting...' : 'Submit Quiz'}
             </Button>

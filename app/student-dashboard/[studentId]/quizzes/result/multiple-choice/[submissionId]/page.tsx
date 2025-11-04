@@ -181,7 +181,7 @@ export default function QuizResultPage() {
       {/* Back Button */}
       <Button
         variant='ghost'
-        className='mb-4'
+        className='cursor-pointer mb-4'
         onClick={() => router.push(`/student-dashboard/${studentId}/quizzes`)}
       >
         <ArrowLeft className='h-4 w-4 mr-2' />
@@ -369,7 +369,9 @@ export default function QuizResultPage() {
             <div className='text-sm text-gray-600'>
               Submitted on {new Date(attempt.submittedAt).toLocaleString()}
             </div>
-            <Button onClick={() => router.push(`/student-dashboard/${studentId}/quizzes`)}>
+            <Button 
+            className='cursor-pointer'
+            onClick={() => router.push(`/student-dashboard/${studentId}/quizzes`)}>
               Back to Dashboard
             </Button>
           </div>
