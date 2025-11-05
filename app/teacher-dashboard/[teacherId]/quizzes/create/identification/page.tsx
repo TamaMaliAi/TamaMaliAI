@@ -59,6 +59,8 @@ export default function IdentificationQuizForm() {
     name: 'questions'
   })
 
+  const [isSubmitting, setIsSubmitting] = React.useState(false)
+
   // Handle prefill from URL
   useEffect(() => {
     const prefillParam = searchParams.get('prefill')
@@ -89,23 +91,28 @@ export default function IdentificationQuizForm() {
   const onSubmit = async (data: QuizFormValues) => {
     if (!teacherId) return console.error('Missing teacher ID')
 
-    const res = await fetch('/api/quiz', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ...data,
-        type: 'IDENTIFICATION',
-        totalPoints,
-        teacherId,
-        questions: data.questions.map((q, i) => ({
-          ...q,
+    setIsSubmitting(true)
+    try {
+      const res = await fetch('/api/quiz', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...data,
           type: 'IDENTIFICATION',
-          order: i + 1
-        }))
+          totalPoints,
+          teacherId,
+          questions: data.questions.map((q, i) => ({
+            ...q,
+            type: 'IDENTIFICATION',
+            order: i + 1
+          }))
+        })
       })
-    })
 
-    if (res.ok) router.push(`/teacher-dashboard/${teacherId}/quizzes`)
+      if (res.ok) router.push(`/teacher-dashboard/${teacherId}/quizzes`)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -223,9 +230,10 @@ export default function IdentificationQuizForm() {
           </span>
           <button
             type='submit'
-            className='bg-orange-600 hover:bg-orange-700 text-white font-medium px-6 py-2 rounded-lg transition-all cursor-pointer'
+            disabled={isSubmitting}
+            className='bg-orange-600 hover:bg-orange-700 text-white font-medium px-6 py-2 rounded-lg transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
           >
-            Save Quiz
+            {isSubmitting ? 'Saving...' : 'Save Quiz'}
           </button>
         </div>
       </form>

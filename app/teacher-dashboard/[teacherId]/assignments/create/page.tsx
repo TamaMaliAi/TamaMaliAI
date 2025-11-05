@@ -76,7 +76,6 @@ export default function AssignQuizPage() {
   })
 
   const assignTo = form.watch('assignTo')
-  const selectedQuiz = quizzes.find((q) => q.id === form.watch('quizId'))
 
   /* ----------------- 📦 FETCH ----------------- */
   useEffect(() => {
@@ -285,8 +284,9 @@ export default function AssignQuizPage() {
             whileTap={{ scale: loading ? 1 : 0.99 }}
             disabled={loading}
             className={`w-full rounded-lg py-3 font-medium text-white transition ${
-              loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-gray-700 hover:bg-gray-800'
+              loading ? 'bg-gray-400 cursor-not-allowed' : 'hover:opacity-90'
             }`}
+            style={{ backgroundColor: loading ? undefined : '#fe6100' }}
           >
             {loading ? 'Assigning Quiz...' : 'Assign Quiz'}
           </motion.button>

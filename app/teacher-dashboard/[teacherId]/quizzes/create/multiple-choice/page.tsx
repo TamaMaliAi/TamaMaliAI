@@ -84,6 +84,8 @@ export default function MultipleChoiceQuizForm() {
     name: 'questions'
   })
 
+  const [isSubmitting, setIsSubmitting] = React.useState(false)
+
   // Handle prefill from URL
   useEffect(() => {
     const prefillParam = searchParams.get('prefill')
@@ -120,6 +122,7 @@ export default function MultipleChoiceQuizForm() {
       return
     }
 
+    setIsSubmitting(true)
     try {
       const res = await fetch('/api/quiz', {
         method: 'POST',
@@ -146,6 +149,8 @@ export default function MultipleChoiceQuizForm() {
       }
     } catch (err) {
       console.error('Error:', err)
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -311,9 +316,10 @@ export default function MultipleChoiceQuizForm() {
           </span>
           <button
             type='submit'
-            className='bg-orange-600 hover:bg-orange-700 text-white font-medium px-6 py-2 rounded-lg transition-all cursor-pointer'
+            disabled={isSubmitting}
+            className='bg-orange-600 hover:bg-orange-700 text-white font-medium px-6 py-2 rounded-lg transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
           >
-            Save Quiz
+            {isSubmitting ? 'Saving...' : 'Save Quiz'}
           </button>
         </div>
       </form>
