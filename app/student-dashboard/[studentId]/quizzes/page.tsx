@@ -236,8 +236,12 @@ export default function QuizzesPage() {
       <Tabs defaultValue='MULTIPLE_CHOICE' className='w-full'>
         <div className='flex justify-center mb-6'>
           <TabsList className='grid grid-cols-2 w-[300px]'>
-            <TabsTrigger value='MULTIPLE_CHOICE'>Multiple Choice</TabsTrigger>
-            <TabsTrigger value='IDENTIFICATION'>Identification</TabsTrigger>
+            <TabsTrigger value='MULTIPLE_CHOICE' className='cursor-pointer'>
+              Multiple Choice
+            </TabsTrigger>
+            <TabsTrigger value='IDENTIFICATION' className='cursor-pointer'>
+              Identification
+            </TabsTrigger>
           </TabsList>
         </div>
 

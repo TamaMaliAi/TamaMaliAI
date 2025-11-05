@@ -27,7 +27,7 @@ type QuizDetailsModalProps = {
   isOpen: boolean
   isLoading: boolean
   quiz: QuizDetails | null
-  studentId: string | null // Changed from number to string
+  studentId: string | null
   onClose: () => void
   onStartQuiz: () => void
   onViewResult: (submissionId: number) => void
@@ -46,14 +46,12 @@ export function QuizDetailsModal({
   const [attempts, setAttempts] = useState<QuizAttempt[]>([])
   const [loadingAttempts, setLoadingAttempts] = useState(false)
 
-  // Reset view when modal opens/closes
   useEffect(() => {
     if (isOpen) {
       setView('details')
     }
   }, [isOpen])
 
-  // Fetch attempts
   const fetchAttempts = async () => {
     if (!quiz || !studentId) return
 
@@ -110,7 +108,7 @@ export function QuizDetailsModal({
     <div className='fixed inset-0 z-50 flex items-center justify-center'>
       {/* Backdrop */}
       <div
-        className='absolute inset-0 bg-black/50 backdrop-blur-sm'
+        className='absolute inset-0 bg-black/50 backdrop-blur-sm cursor-pointer'
         onClick={onClose}
       />
 
@@ -119,7 +117,7 @@ export function QuizDetailsModal({
         {/* Close Button */}
         <button
           onClick={onClose}
-          className='absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors'
+          className='absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer'
           disabled={isLoading}
         >
           <X className='w-5 h-5' />
@@ -129,7 +127,7 @@ export function QuizDetailsModal({
         {view === 'attempts' && (
           <button
             onClick={handleBackToDetails}
-            className='absolute top-4 left-4 text-gray-400 hover:text-gray-600 transition-colors flex items-center gap-1'
+            className='absolute top-4 left-4 text-gray-400 hover:text-gray-600 transition-colors flex items-center gap-1 cursor-pointer'
           >
             <ArrowLeft className='w-5 h-5' />
           </button>
@@ -245,7 +243,7 @@ export function QuizDetailsModal({
                 variant='outline'
                 onClick={handleSeeResults}
                 disabled={isLoading || !quiz}
-                className='flex-1'
+                className='flex-1 cursor-pointer'
               >
                 See Results
               </Button>
@@ -253,7 +251,7 @@ export function QuizDetailsModal({
                 type='button'
                 onClick={onStartQuiz}
                 disabled={isLoading || !quiz}
-                className='flex-1'
+                className='flex-1 cursor-pointer'
               >
                 Start Quiz
               </Button>
@@ -263,7 +261,7 @@ export function QuizDetailsModal({
               type='button'
               onClick={handleBackToDetails}
               disabled={loadingAttempts}
-              className='w-full'
+              className='w-full cursor-pointer'
             >
               Back to Quiz Details
             </Button>

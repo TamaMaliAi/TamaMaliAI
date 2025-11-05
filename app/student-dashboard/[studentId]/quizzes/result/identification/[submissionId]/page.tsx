@@ -183,8 +183,9 @@ export default function IdentificationQuizResultPage() {
       {/* Back Button */}
       <Button
         variant='ghost'
-        className='mb-4'
+        className='cursor-pointer mb-4'
         onClick={() => router.push(`/student-dashboard/${studentId}/quizzes`)}
+        
       >
         <ArrowLeft className='h-4 w-4 mr-2' />
         Back to Dashboard
@@ -247,7 +248,7 @@ export default function IdentificationQuizResultPage() {
       </Card>
 
       {/* Note about grading */}
-      <Card className='mb-6 rounded-2xl shadow-sm border-2 border-blue-200 bg-blue-50/30'>
+      {/* <Card className='mb-6 rounded-2xl shadow-sm border-2 border-blue-200 bg-blue-50/30'>
         <CardContent className='py-4'>
           <div className='flex items-start gap-3'>
             <AlertTriangle className='h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5' />
@@ -262,7 +263,7 @@ export default function IdentificationQuizResultPage() {
             </div>
           </div>
         </CardContent>
-      </Card>
+      </Card> */}
 
       {/* Questions Review */}
       <div className='space-y-6'>
@@ -336,11 +337,11 @@ export default function IdentificationQuizResultPage() {
                     )}
 
                     {/* Show comparison if answers are similar but not exact */}
-                    {!isCorrect && studentAnswer?.textAnswer && correctAnswer !== 'N/A' && (
+                    {/* {!isCorrect && studentAnswer?.textAnswer && correctAnswer !== 'N/A' && (
                       <div className='text-xs text-gray-500 italic p-2 bg-gray-50 rounded'>
                         💡 Tip: Make sure your answer matches exactly, including spelling and formatting.
                       </div>
-                    )}
+                    )} */}
                   </div>
                 </CardContent>
               </Card>
@@ -355,7 +356,9 @@ export default function IdentificationQuizResultPage() {
             <div className='text-sm text-gray-600'>
               Submitted on {new Date(attempt.submittedAt).toLocaleString()}
             </div>
-            <Button onClick={() => router.push(`/student-dashboard/${studentId}/quizzes`)}>
+            <Button 
+            className='cursor-pointer'
+            onClick={() => router.push(`/student-dashboard/${studentId}/quizzes`)}>
               Back to Dashboard
             </Button>
           </div>
