@@ -1,51 +1,126 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import moment from 'moment'
-import { mockUsers as rawUsers } from './hooks/students'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { motion } from 'framer-motion'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
-import { ArrowUpRight, Users, CalendarDays, UserPlus } from 'lucide-react'
+import { ArrowUpRight, Users, CalendarDays, UserPlus, Loader2 } from 'lucide-react'
+import { Group, QuizAssignment, QuizAttempt } from '@prisma/client'
+
+interface Student {
+  id: number
+  email: string
+  name: string
+  role: string
+  createdAt: string
+  updatedAt: string
+  studentGroups: Group[]
+  assignedQuizzes: QuizAssignment[]
+  attempts: QuizAttempt[]
+}
 
 export default function TeacherDashboardHome() {
-  const mockUsers = useMemo(
-    () =>
-      rawUsers.map((user) => ({
-        ...user,
-        createdAt: moment(user.createdAt),
-        updatedAt: moment(user.updatedAt)
-      })),
-    []
-  )
+  const [students, setStudents] = useState<Student[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  // ✅ Compute analytics using moment only
+  useEffect(() => {
+    const fetchStudents = async () => {
+      try {
+        setLoading(true)
+        const response = await fetch('/api/students')
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch students')
+        }
+
+        const data = await response.json()
+        setStudents(data.students || [])
+        setError(null)
+      } catch (err) {
+        console.error('Error fetching students:', err)
+        setError(err instanceof Error ? err.message : 'Failed to load data')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchStudents()
+  }, [])
+
+  // ✅ Compute analytics using moment
   const analytics = useMemo(() => {
-    const usersByDate = mockUsers.reduce<Record<string, number>>((acc, user) => {
-      const date = user.createdAt.format('YYYY-MM-DD')
+    if (students.length === 0) {
+      return {
+        totalStudents: 0,
+        newThisWeek: 0,
+        growthRate: 0,
+        chartData: [],
+        recentSignups: []
+      }
+    }
+
+    const usersByDate = students.reduce<Record<string, number>>((acc, user) => {
+      const date = moment(user.createdAt).format('YYYY-MM-DD')
       acc[date] = (acc[date] || 0) + 1
       return acc
     }, {})
 
-    const chartData = Object.entries(usersByDate).map(([date, count]) => ({
-      date,
-      count
-    }))
+    const chartData = Object.entries(usersByDate)
+      .map(([date, count]) => ({
+        date,
+        count
+      }))
+      .sort((a, b) => a.date.localeCompare(b.date))
 
-    const totalStudents = mockUsers.length
-    const now = moment()
+    const totalStudents = students.length
     const oneWeekAgo = moment().subtract(7, 'days')
     const twoWeeksAgo = moment().subtract(14, 'days')
 
-    const newThisWeek = mockUsers.filter((u) => u.createdAt.isAfter(oneWeekAgo)).length
-    const prevWeekCount = mockUsers.filter((u) => u.createdAt.isBetween(twoWeeksAgo, oneWeekAgo)).length
+    const newThisWeek = students.filter((u) => moment(u.createdAt).isAfter(oneWeekAgo)).length
+    const prevWeekCount = students.filter((u) => {
+      const createdAt = moment(u.createdAt)
+      return createdAt.isBetween(twoWeeksAgo, oneWeekAgo)
+    }).length
 
     const growthRate = prevWeekCount > 0 ? ((newThisWeek - prevWeekCount) / prevWeekCount) * 100 : 100
 
-    const recentSignups = [...mockUsers].sort((a, b) => b.createdAt.valueOf() - a.createdAt.valueOf()).slice(0, 5)
+    const recentSignups = [...students]
+      .sort((a, b) => moment(b.createdAt).valueOf() - moment(a.createdAt).valueOf())
+      .slice(0, 5)
 
     return { totalStudents, newThisWeek, growthRate, chartData, recentSignups }
-  }, [mockUsers])
+  }, [students])
+
+  if (loading) {
+    return (
+      <div className='p-6 flex items-center justify-center h-96'>
+        <div className='flex flex-col items-center gap-3'>
+          <Loader2 className='h-8 w-8 animate-spin text-blue-600' />
+          <p className='text-gray-500'>Loading analytics...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className='p-6'>
+        <Card className='shadow-md border-red-200 bg-red-50'>
+          <CardContent className='pt-6'>
+            <p className='text-red-600 font-medium'>Error loading data: {error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className='mt-4 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors'
+            >
+              Retry
+            </button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className='p-6 space-y-8'>
@@ -109,15 +184,21 @@ export default function TeacherDashboardHome() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width='100%' height={300}>
-            <LineChart data={analytics.chartData}>
-              <CartesianGrid strokeDasharray='3 3' />
-              <XAxis dataKey='date' />
-              <YAxis allowDecimals={false} />
-              <Tooltip />
-              <Line type='monotone' dataKey='count' stroke='#2563eb' strokeWidth={3} />
-            </LineChart>
-          </ResponsiveContainer>
+          {analytics.chartData.length > 0 ? (
+            <ResponsiveContainer width='100%' height={300}>
+              <LineChart data={analytics.chartData}>
+                <CartesianGrid strokeDasharray='3 3' />
+                <XAxis dataKey='date' />
+                <YAxis allowDecimals={false} />
+                <Tooltip />
+                <Line type='monotone' dataKey='count' stroke='#2563eb' strokeWidth={3} />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className='h-[300px] flex items-center justify-center text-gray-500'>
+              No registration data available
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -129,20 +210,24 @@ export default function TeacherDashboardHome() {
           </CardTitle>
         </CardHeader>
         <CardContent className='space-y-4'>
-          {analytics.recentSignups.map((user) => (
-            <motion.div
-              key={user.id}
-              className='flex justify-between items-center border-b pb-2 last:border-none'
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <div>
-                <p className='font-medium'>{user.name}</p>
-                <p className='text-sm text-gray-500'>{user.email}</p>
-              </div>
-              <p className='text-sm text-gray-400'>{user.createdAt.format('MMM D')}</p>
-            </motion.div>
-          ))}
+          {analytics.recentSignups.length > 0 ? (
+            analytics.recentSignups.map((user) => (
+              <motion.div
+                key={user.id}
+                className='flex justify-between items-center border-b pb-2 last:border-none'
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <div>
+                  <p className='font-medium'>{user.name}</p>
+                  <p className='text-sm text-gray-500'>{user.email}</p>
+                </div>
+                <p className='text-sm text-gray-400'>{moment(user.createdAt).format('MMM D')}</p>
+              </motion.div>
+            ))
+          ) : (
+            <p className='text-gray-500 text-center py-4'>No recent sign-ups</p>
+          )}
         </CardContent>
       </Card>
     </div>

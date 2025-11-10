@@ -1,186 +1,24 @@
 'use client'
-import React, { useState } from 'react'
-import { Search, ChevronDown, ChevronLeft, ChevronRight, X } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { Search, ChevronDown, ChevronLeft, ChevronRight, X, Loader2 } from 'lucide-react'
+import { Group, QuizAssignment, QuizAttempt } from '@prisma/client'
 
-const mockUsers = [
-  {
-    id: 1,
-    email: 'ella.martinez1@example.com',
-    name: 'Ella Martinez',
-    role: 'STUDENT',
-    createdAt: new Date('2025-09-10T10:15:31.000Z')
-  },
-  {
-    id: 2,
-    email: 'liam.garcia2@example.com',
-    name: 'Liam Garcia',
-    role: 'STUDENT',
-    createdAt: new Date('2025-09-11T08:12:11.000Z')
-  },
-  {
-    id: 3,
-    email: 'sophia.kim3@example.com',
-    name: 'Sophia Kim',
-    role: 'STUDENT',
-    createdAt: new Date('2025-09-12T14:45:03.000Z')
-  },
-  {
-    id: 4,
-    email: 'noah.chen4@example.com',
-    name: 'Noah Chen',
-    role: 'STUDENT',
-    createdAt: new Date('2025-09-13T11:03:09.000Z')
-  },
-  {
-    id: 5,
-    email: 'ava.perez5@example.com',
-    name: 'Ava Perez',
-    role: 'STUDENT',
-    createdAt: new Date('2025-09-14T15:51:44.000Z')
-  },
-  {
-    id: 6,
-    email: 'ethan.nguyen6@example.com',
-    name: 'Ethan Nguyen',
-    role: 'STUDENT',
-    createdAt: new Date('2025-09-15T13:25:11.000Z')
-  },
-  {
-    id: 7,
-    email: 'mia.ramirez7@example.com',
-    name: 'Mia Ramirez',
-    role: 'STUDENT',
-    createdAt: new Date('2025-09-16T09:54:22.000Z')
-  },
-  {
-    id: 8,
-    email: 'oliver.lee8@example.com',
-    name: 'Oliver Lee',
-    role: 'STUDENT',
-    createdAt: new Date('2025-09-17T16:42:19.000Z')
-  },
-  {
-    id: 9,
-    email: 'isabella.lopez9@example.com',
-    name: 'Isabella Lopez',
-    role: 'STUDENT',
-    createdAt: new Date('2025-09-18T12:08:03.000Z')
-  },
-  {
-    id: 10,
-    email: 'lucas.santos10@example.com',
-    name: 'Lucas Santos',
-    role: 'STUDENT',
-    createdAt: new Date('2025-09-19T18:30:25.000Z')
-  },
-  {
-    id: 11,
-    email: 'amelia.davis11@example.com',
-    name: 'Amelia Davis',
-    role: 'STUDENT',
-    createdAt: new Date('2025-09-20T10:23:48.000Z')
-  },
-  {
-    id: 12,
-    email: 'benjamin.wilson12@example.com',
-    name: 'Benjamin Wilson',
-    role: 'STUDENT',
-    createdAt: new Date('2025-09-21T11:14:03.000Z')
-  },
-  {
-    id: 13,
-    email: 'harper.johnson13@example.com',
-    name: 'Harper Johnson',
-    role: 'STUDENT',
-    createdAt: new Date('2025-09-22T14:07:58.000Z')
-  },
-  {
-    id: 14,
-    email: 'elijah.brown14@example.com',
-    name: 'Elijah Brown',
-    role: 'STUDENT',
-    createdAt: new Date('2025-09-23T13:22:44.000Z')
-  },
-  {
-    id: 15,
-    email: 'evelyn.taylor15@example.com',
-    name: 'Evelyn Taylor',
-    role: 'STUDENT',
-    createdAt: new Date('2025-09-24T15:59:19.000Z')
-  },
-  {
-    id: 16,
-    email: 'henry.white16@example.com',
-    name: 'Henry White',
-    role: 'STUDENT',
-    createdAt: new Date('2025-09-25T09:51:12.000Z')
-  },
-  {
-    id: 17,
-    email: 'charlotte.moore17@example.com',
-    name: 'Charlotte Moore',
-    role: 'STUDENT',
-    createdAt: new Date('2025-09-26T14:20:11.000Z')
-  },
-  {
-    id: 18,
-    email: 'william.thomas18@example.com',
-    name: 'William Thomas',
-    role: 'STUDENT',
-    createdAt: new Date('2025-09-27T17:38:42.000Z')
-  },
-  {
-    id: 19,
-    email: 'scarlett.jackson19@example.com',
-    name: 'Scarlett Jackson',
-    role: 'STUDENT',
-    createdAt: new Date('2025-09-28T19:14:27.000Z')
-  },
-  {
-    id: 20,
-    email: 'james.anderson20@example.com',
-    name: 'James Anderson',
-    role: 'STUDENT',
-    createdAt: new Date('2025-09-29T10:31:44.000Z')
-  },
-  {
-    id: 21,
-    email: 'aria.murphy21@example.com',
-    name: 'Aria Murphy',
-    role: 'STUDENT',
-    createdAt: new Date('2025-09-30T14:11:09.000Z')
-  },
-  {
-    id: 22,
-    email: 'alexander.clark22@example.com',
-    name: 'Alexander Clark',
-    role: 'STUDENT',
-    createdAt: new Date('2025-10-01T13:42:54.000Z')
-  },
-  {
-    id: 23,
-    email: 'sofia.robinson23@example.com',
-    name: 'Sofia Robinson',
-    role: 'STUDENT',
-    createdAt: new Date('2025-10-02T15:09:13.000Z')
-  },
-  {
-    id: 24,
-    email: 'mason.hall24@example.com',
-    name: 'Mason Hall',
-    role: 'STUDENT',
-    createdAt: new Date('2025-10-03T17:40:32.000Z')
-  },
-  {
-    id: 25,
-    email: 'grace.king25@example.com',
-    name: 'Grace King',
-    role: 'STUDENT',
-    createdAt: new Date('2025-10-04T16:22:44.000Z')
-  }
-]
+interface Student {
+  id: number
+  email: string
+  name: string
+  role: string
+  createdAt: string
+  updatedAt: string
+  studentGroups: Group[]
+  assignedQuizzes: QuizAssignment[]
+  attempts: QuizAttempt[]
+}
 
 export default function StudentsPage() {
+  const [students, setStudents] = useState<Student[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(0)
   const [showColumns, setShowColumns] = useState({
@@ -193,13 +31,65 @@ export default function StudentsPage() {
 
   const pageSize = 10
 
-  const filtered = mockUsers.filter((user) => {
+  useEffect(() => {
+    const fetchStudents = async () => {
+      try {
+        setLoading(true)
+        const response = await fetch('/api/students')
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch students')
+        }
+
+        const data = await response.json()
+        setStudents(data.students || [])
+        setError(null)
+      } catch (err) {
+        console.error('Error fetching students:', err)
+        setError(err instanceof Error ? err.message : 'Failed to load data')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchStudents()
+  }, [])
+
+  const filtered = students.filter((user) => {
     const s = search.toLowerCase()
     return user.name.toLowerCase().includes(s) || user.email.toLowerCase().includes(s) || user.id.toString().includes(s)
   })
 
   const totalPages = Math.ceil(filtered.length / pageSize)
   const paginatedData = filtered.slice(page * pageSize, (page + 1) * pageSize)
+
+  if (loading) {
+    return (
+      <div className='w-full min-h-screen bg-gray-50 flex items-center justify-center'>
+        <div className='flex flex-col items-center gap-3'>
+          <Loader2 className='h-8 w-8 animate-spin text-blue-600' />
+          <p className='text-gray-500'>Loading students...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className='w-full min-h-screen bg-gray-50 flex items-center justify-center p-6'>
+        <div className='max-w-md w-full bg-white rounded-lg border border-red-200 p-6 shadow-sm'>
+          <h2 className='text-lg font-semibold text-red-600 mb-2'>Error Loading Students</h2>
+          <p className='text-gray-700 mb-4'>{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className='px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors'
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className='w-full min-h-screen bg-gray-50 p-6'>
@@ -305,7 +195,7 @@ export default function StudentsPage() {
                       )} */}
                       {showColumns.createdAt && (
                         <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-600'>
-                          {user.createdAt.toLocaleDateString()}
+                          {new Date(user.createdAt).toLocaleDateString()}
                         </td>
                       )}
                     </tr>
@@ -316,7 +206,7 @@ export default function StudentsPage() {
                       colSpan={Object.values(showColumns).filter(Boolean).length}
                       className='px-6 py-12 text-center text-sm text-gray-500'
                     >
-                      No results found.
+                      {search ? 'No results found.' : 'No students available.'}
                     </td>
                   </tr>
                 )}
